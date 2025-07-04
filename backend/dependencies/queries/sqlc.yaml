@@ -1,0 +1,45 @@
+version: "2"
+sql:
+- schema: "../../database/migration"
+  queries: 
+    - "query/test.sql"
+  engine: "postgresql"
+  gen:
+    go: 
+      package: "dbgen"
+      sql_package: "pgx/v5"
+      out: "dbgen"
+      emit_pointers_for_null_types: true
+      emit_enum_valid_method: true
+      emit_all_enum_values: true
+      emit_sql_as_comment: true
+      initialisms: ["id", "uri"]
+      emit_interface: true
+      query_parameter_limit: 1
+      overrides:
+        - db_type: "pg_catalog.timestamp"
+          go_type:
+            import: "time"
+            type: "Time"
+        - db_type: "pg_catalog.timestamp"
+          go_type:
+            import: "time"
+            type: "Time"
+            pointer: true
+          nullable: true
+        - db_type: "date"
+          go_type:
+            import: "time"
+            type: "Time"
+        - db_type: "date"
+          go_type:
+            import: "time"
+            type: "Time"
+            pointer: true
+          nullable: true
+overrides:
+  go:
+    rename:  
+      account_account: Account
+      mission_mission: Mission
+      event_event: Event
