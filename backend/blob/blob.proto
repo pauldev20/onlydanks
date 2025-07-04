@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package blob;
+
+option go_package = "github.com/proto-dankmessaging/backend/blob";
+
+message BlobContent {
+    repeated Message messages = 1;
+}
+
+message Message {
+    bytes ephemeral_pubkey = 1;
+    bytes search_index = 2;
+    bytes message = 3;
+}
+

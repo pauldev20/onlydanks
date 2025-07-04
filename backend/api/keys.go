@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/hex"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -22,7 +23,7 @@ func (a *API) GetKeys(c *fiber.Ctx) error {
 	}
 	keyString := make([]string, len(keys))
 	for i, key := range keys {
-		keyString[i] = key.Pubkey
+		keyString[i] = hex.EncodeToString(key.Pubkey)
 	}
 	return c.JSON(keyString)
 }

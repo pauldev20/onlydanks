@@ -10,26 +10,40 @@ import (
 )
 
 type Querier interface {
+	//AddBlobSubmission
+	//
+	//  INSERT INTO message.blob_submission (index, message, pubkey) VALUES ($1, $2, $3)
+	//  ON CONFLICT (index, message, pubkey) DO NOTHING
+	//  RETURNING id, index, message, pubkey
+	AddBlobSubmission(ctx context.Context, arg AddBlobSubmissionParams) (MessageBlobSubmission, error)
 	//AddMessage
 	//
-	//  INSERT INTO message.message (index, message, submit_time) VALUES ($1, $2, $3)
-	//  ON CONFLICT (index, message) DO UPDATE SET submit_time = EXCLUDED.submit_time
-	//  RETURNING id, index, message, submit_time
-	AddMessage(ctx context.Context, arg AddMessageParams) (MessageMessage, error)
+	//  INSERT INTO message.blob (index, message, submit_time, needs_submission) VALUES ($1, $2, $3, $4)
+	//  ON CONFLICT (index, message) DO UPDATE SET submit_time = EXCLUDED.submit_time, needs_submission = EXCLUDED.needs_submission
+	//  RETURNING id, index, message, submit_time, needs_submission
+	AddMessage(ctx context.Context, arg AddMessageParams) (MessageBlob, error)
 	//AddPubkey
 	//
 	//  INSERT INTO message.pubkey (pubkey, submit_time) VALUES ($1, $2)
 	//  ON CONFLICT (pubkey) DO UPDATE SET submit_time = EXCLUDED.submit_time
 	//  RETURNING pubkey, submit_time
 	AddPubkey(ctx context.Context, arg AddPubkeyParams) (MessagePubkey, error)
+	//GetBlobSubmissions
+	//
+	//  SELECT id, index, message, pubkey FROM message.blob_submission
+	GetBlobSubmissions(ctx context.Context) ([]MessageBlobSubmission, error)
 	//GetMessagesByIndex
 	//
-	//  SELECT id, index, message, submit_time FROM message.message WHERE index = $1
-	GetMessagesByIndex(ctx context.Context, index string) ([]MessageMessage, error)
+	//  SELECT id, index, message, submit_time, needs_submission FROM message.blob WHERE index = $1
+	GetMessagesByIndex(ctx context.Context, index []byte) ([]MessageBlob, error)
 	//GetPubkeysSince
 	//
 	//  SELECT pubkey, submit_time FROM message.pubkey WHERE submit_time > $1 LIMIT 1000
 	GetPubkeysSince(ctx context.Context, submitTime time.Time) ([]MessagePubkey, error)
+	//RemoveBlobSubmission
+	//
+	//  DELETE FROM message.blob_submission WHERE id = $1
+	RemoveBlobSubmission(ctx context.Context, id int32) error
 }
 
 var _ Querier = (*Queries)(nil)

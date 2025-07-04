@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"proto-dankmessaging/backend/dependencies/queries/dbgen"
 	"time"
@@ -13,8 +15,14 @@ import (
 
 type PostMessageRequest struct {
 	EphemeralPubKey string `json:"ephemeral_pubkey" validate:"required,len=64,hexadecimal"`
-	SearchIndex     string `json:"search_index" validate:"required"`
-	Message         string `json:"message" validate:"required"`
+	SearchIndex     string `json:"search_index" validate:"required,hexadecimal"`
+	Message         string `json:"message" validate:"required,base64"`
+}
+
+type PostMessageRequestBytes struct {
+	EphemeralPubKey []byte `json:"ephemeral_pubkey"`
+	SearchIndex     []byte `json:"search_index"`
+	Message         []byte `json:"message"`
 }
 
 func (a *API) PostMessage(c *fiber.Ctx) error {
@@ -28,19 +36,47 @@ func (a *API) PostMessage(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
-	err = a.bypassAdd(c.Context(), request)
+	requestBytes, err := convertPostMessageRequestToBytes(request)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+	err = a.bypassBlob(c.Context(), requestBytes)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to add directly to the database")
 	}
-	err = a.blob.SubmitBlob(request.EphemeralPubKey, request.SearchIndex, request.Message)
+	_, err = a.queries.AddBlobSubmission(c.Context(), dbgen.AddBlobSubmissionParams{
+		Index:   requestBytes.SearchIndex,
+		Message: requestBytes.Message,
+		Pubkey:  requestBytes.EphemeralPubKey,
+	})
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to submit blob")
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.SendStatus(fiber.StatusOK)
 }
 
+func convertPostMessageRequestToBytes(request PostMessageRequest) (PostMessageRequestBytes, error) {
+	ephemeralPubKey, err := hex.DecodeString(request.EphemeralPubKey)
+	if err != nil {
+		return PostMessageRequestBytes{}, errors.New("failed to decode ephemeral pubkey: " + err.Error())
+	}
+	searchIndex, err := hex.DecodeString(request.SearchIndex)
+	if err != nil {
+		return PostMessageRequestBytes{}, errors.New("failed to decode search index: " + err.Error())
+	}
+	message, err := base64.StdEncoding.DecodeString(request.Message)
+	if err != nil {
+		return PostMessageRequestBytes{}, errors.New("failed to decode message: " + err.Error())
+	}
+	return PostMessageRequestBytes{
+		EphemeralPubKey: ephemeralPubKey,
+		SearchIndex:     searchIndex,
+		Message:         message,
+	}, nil
+}
+
 type MessageResponse struct {
-	Message    string    `json:"message"`
+	Message    []byte    `json:"message"`
 	SubmitTime time.Time `json:"submit_time"`
 }
 
@@ -49,7 +85,11 @@ func (a *API) GetMessage(c *fiber.Ctx) error {
 	if index == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Index is required"})
 	}
-	messages, err := a.queries.GetMessagesByIndex(c.Context(), index)
+	indexBytes, err := hex.DecodeString(index)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid index: " + err.Error()})
+	}
+	messages, err := a.queries.GetMessagesByIndex(c.Context(), indexBytes)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -64,7 +104,7 @@ func (a *API) GetMessage(c *fiber.Ctx) error {
 }
 
 // will add it directly to the database makes the whole process faster but can not test blobs using this
-func (a *API) bypassAdd(ctx context.Context, msg PostMessageRequest) error {
+func (a *API) bypassBlob(ctx context.Context, msg PostMessageRequestBytes) error {
 	_, err := a.queries.AddPubkey(ctx, dbgen.AddPubkeyParams{
 		Pubkey:     msg.EphemeralPubKey,
 		SubmitTime: time.Now(),
@@ -73,9 +113,10 @@ func (a *API) bypassAdd(ctx context.Context, msg PostMessageRequest) error {
 		return errors.New("failed to add pubkey: " + err.Error())
 	}
 	_, err = a.queries.AddMessage(ctx, dbgen.AddMessageParams{
-		Index:      msg.SearchIndex,
-		Message:    msg.Message,
-		SubmitTime: time.Now(),
+		Index:           msg.SearchIndex,
+		Message:         msg.Message,
+		SubmitTime:      time.Now(),
+		NeedsSubmission: true,
 	})
 	if err != nil {
 		return errors.New("failed to add message: " + err.Error())

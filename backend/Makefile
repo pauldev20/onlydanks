@@ -1,0 +1,3 @@
+dev:
+	go generate ./...
+	go run .

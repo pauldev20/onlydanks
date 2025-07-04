@@ -29,7 +29,7 @@ func main() {
 	b := blob.NewBlob(dep)
 	startBlob(ctx, b, &wg)
 
-	api := api.NewAPI(dep, b)
+	api := api.NewAPI(dep)
 	startAPI(api, &wg)
 
 	log.Info().Msg("server running")
