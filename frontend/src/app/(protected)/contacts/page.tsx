@@ -2,6 +2,7 @@
 'use client';
 
 import { useChat } from '@/lib/ChatContext';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 export default function ContactsPage() {
@@ -17,15 +18,24 @@ export default function ContactsPage() {
           <div
             key={c.id}
             onClick={() => router.push(`/chat/${c.id}`)}
-            className="p-4 border-b cursor-pointer hover:bg-gray-50"
+            className="p-3 px-5 flex gap-4 items-center border-b cursor-pointer hover:bg-gray-50"
           >
+            <Image
+            src={c.avatar}
+            alt={c.name}
+            width={48}
+            height={48}
+            className="rounded-full object-cover mr-4"
+            />
+          <div className="flex-1">
             <div className="flex justify-between items-center">
-              <span className="font-semibold">{c.name}</span>
+              <span className="font-semibold text-[16px]">{c.name}</span>
               {unread && (
-                <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">new</span>
+                <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">new</span>
               )}
             </div>
             <div className="text-sm text-gray-600 truncate">{last?.text}</div>
+          </div>
           </div>
         );
       })}
