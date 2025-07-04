@@ -37,9 +37,3 @@ sql:
             type: "Time"
             pointer: true
           nullable: true
-overrides:
-  go:
-    rename:  
-      account_account: Account
-      mission_mission: Mission
-      event_event: Event

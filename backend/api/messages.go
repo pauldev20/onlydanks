@@ -1,6 +1,11 @@
 package api
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"proto-dankmessaging/backend/dependencies/queries/dbgen"
+	"time"
+
+	"github.com/gofiber/fiber/v2"
+)
 
 type PostMessageRequest struct {
 	EphemeralPubKey string `json:"ephemeral_pubkey"`
@@ -12,6 +17,11 @@ func (a *API) PostMessage(c *fiber.Ctx) error {
 	if err := c.BodyParser(&request); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
+	now := time.Now()
+	a.queries.AddPubkey(c.Context(), dbgen.AddPubkeyParams{
+		Pubkey:     request.EphemeralPubKey,
+		SubmitTime: &now,
+	})
 	return c.SendStatus(fiber.StatusOK)
 }
 
