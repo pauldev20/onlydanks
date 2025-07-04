@@ -39,7 +39,7 @@ type Config struct {
 	Environment Environment `koanf:"environment"  validate:"required,oneof=development staging production"`
 	LogLevel    LogLevel    `koanf:"log_level"    validate:"required,oneof=trace debug info warn error fatal panic"`
 	LogType     LogType     `koanf:"log_type"     validate:"required,oneof=structured plain"`
-	Port        int         `koanf:"port_ip4"     validate:"required"`
+	Port        int         `koanf:"port"     validate:"required"`
 
 	Database string `koanf:"database"                validate:"required,url"`
 }

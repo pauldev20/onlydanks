@@ -32,7 +32,7 @@ func startAPI(
 	dep *dependencies.Dependencies,
 ) *api.API {
 	wg.Add(1)
-	api := api.NewAPI()
+	api := api.NewAPI(dep)
 	go func() {
 		defer wg.Done()
 		err := api.Start()
