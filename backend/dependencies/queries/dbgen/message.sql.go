@@ -11,30 +11,28 @@ import (
 )
 
 const addMessage = `-- name: AddMessage :one
-INSERT INTO message.message (id, prefix, message, submit_time) VALUES ($1, $2, $3, $4) RETURNING id, prefix, message, submit_time
+INSERT INTO message.message (index, message, submit_time) VALUES ($1, $2, $3) 
+ON CONFLICT (index, message) DO UPDATE SET submit_time = EXCLUDED.submit_time 
+RETURNING id, index, message, submit_time
 `
 
 type AddMessageParams struct {
-	ID         string
-	Prefix     *string
-	Message    *string
-	SubmitTime *time.Time
+	Index      string
+	Message    string
+	SubmitTime time.Time
 }
 
 // AddMessage
 //
-//	INSERT INTO message.message (id, prefix, message, submit_time) VALUES ($1, $2, $3, $4) RETURNING id, prefix, message, submit_time
+//	INSERT INTO message.message (index, message, submit_time) VALUES ($1, $2, $3)
+//	ON CONFLICT (index, message) DO UPDATE SET submit_time = EXCLUDED.submit_time
+//	RETURNING id, index, message, submit_time
 func (q *Queries) AddMessage(ctx context.Context, arg AddMessageParams) (MessageMessage, error) {
-	row := q.db.QueryRow(ctx, addMessage,
-		arg.ID,
-		arg.Prefix,
-		arg.Message,
-		arg.SubmitTime,
-	)
+	row := q.db.QueryRow(ctx, addMessage, arg.Index, arg.Message, arg.SubmitTime)
 	var i MessageMessage
 	err := row.Scan(
 		&i.ID,
-		&i.Prefix,
+		&i.Index,
 		&i.Message,
 		&i.SubmitTime,
 	)
@@ -42,17 +40,21 @@ func (q *Queries) AddMessage(ctx context.Context, arg AddMessageParams) (Message
 }
 
 const addPubkey = `-- name: AddPubkey :one
-INSERT INTO message.pubkey (pubkey, submit_time) VALUES ($1, $2) RETURNING pubkey, submit_time
+INSERT INTO message.pubkey (pubkey, submit_time) VALUES ($1, $2) 
+ON CONFLICT (pubkey) DO UPDATE SET submit_time = EXCLUDED.submit_time 
+RETURNING pubkey, submit_time
 `
 
 type AddPubkeyParams struct {
 	Pubkey     string
-	SubmitTime *time.Time
+	SubmitTime time.Time
 }
 
 // AddPubkey
 //
-//	INSERT INTO message.pubkey (pubkey, submit_time) VALUES ($1, $2) RETURNING pubkey, submit_time
+//	INSERT INTO message.pubkey (pubkey, submit_time) VALUES ($1, $2)
+//	ON CONFLICT (pubkey) DO UPDATE SET submit_time = EXCLUDED.submit_time
+//	RETURNING pubkey, submit_time
 func (q *Queries) AddPubkey(ctx context.Context, arg AddPubkeyParams) (MessagePubkey, error) {
 	row := q.db.QueryRow(ctx, addPubkey, arg.Pubkey, arg.SubmitTime)
 	var i MessagePubkey
@@ -60,15 +62,15 @@ func (q *Queries) AddPubkey(ctx context.Context, arg AddPubkeyParams) (MessagePu
 	return i, err
 }
 
-const getMessagesByPrefix = `-- name: GetMessagesByPrefix :many
-SELECT id, prefix, message, submit_time FROM message.message WHERE prefix = $1
+const getMessagesByIndex = `-- name: GetMessagesByIndex :many
+SELECT id, index, message, submit_time FROM message.message WHERE index = $1
 `
 
-// GetMessagesByPrefix
+// GetMessagesByIndex
 //
-//	SELECT id, prefix, message, submit_time FROM message.message WHERE prefix = $1
-func (q *Queries) GetMessagesByPrefix(ctx context.Context, prefix *string) ([]MessageMessage, error) {
-	rows, err := q.db.Query(ctx, getMessagesByPrefix, prefix)
+//	SELECT id, index, message, submit_time FROM message.message WHERE index = $1
+func (q *Queries) GetMessagesByIndex(ctx context.Context, index string) ([]MessageMessage, error) {
+	rows, err := q.db.Query(ctx, getMessagesByIndex, index)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +80,7 @@ func (q *Queries) GetMessagesByPrefix(ctx context.Context, prefix *string) ([]Me
 		var i MessageMessage
 		if err := rows.Scan(
 			&i.ID,
-			&i.Prefix,
+			&i.Index,
 			&i.Message,
 			&i.SubmitTime,
 		); err != nil {
@@ -93,13 +95,13 @@ func (q *Queries) GetMessagesByPrefix(ctx context.Context, prefix *string) ([]Me
 }
 
 const getPubkeysSince = `-- name: GetPubkeysSince :many
-SELECT pubkey, submit_time FROM message.pubkey WHERE submit_time > $1
+SELECT pubkey, submit_time FROM message.pubkey WHERE submit_time > $1 LIMIT 1000
 `
 
 // GetPubkeysSince
 //
-//	SELECT pubkey, submit_time FROM message.pubkey WHERE submit_time > $1
-func (q *Queries) GetPubkeysSince(ctx context.Context, submitTime *time.Time) ([]MessagePubkey, error) {
+//	SELECT pubkey, submit_time FROM message.pubkey WHERE submit_time > $1 LIMIT 1000
+func (q *Queries) GetPubkeysSince(ctx context.Context, submitTime time.Time) ([]MessagePubkey, error) {
 	rows, err := q.db.Query(ctx, getPubkeysSince, submitTime)
 	if err != nil {
 		return nil, err

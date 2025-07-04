@@ -25,7 +25,7 @@ func NewAPI(dep *dependencies.Dependencies, blob *blob.Blob) *API {
 		blob:    blob,
 	}
 	api.app.Get("/keys", api.GetKeys)
-	api.app.Get("/messages/:key", api.GetMessage)
+	api.app.Get("/messages/:index", api.GetMessage)
 	api.app.Post("/messages", api.PostMessage)
 	return api
 }

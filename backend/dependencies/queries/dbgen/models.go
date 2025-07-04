@@ -9,13 +9,13 @@ import (
 )
 
 type MessageMessage struct {
-	ID         string
-	Prefix     *string
-	Message    *string
-	SubmitTime *time.Time
+	ID         int32
+	Index      string
+	Message    string
+	SubmitTime time.Time
 }
 
 type MessagePubkey struct {
 	Pubkey     string
-	SubmitTime *time.Time
+	SubmitTime time.Time
 }

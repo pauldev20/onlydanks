@@ -14,7 +14,7 @@ func (a *API) GetKeys(c *fiber.Ctx) error {
 			"error": err.Error(),
 		})
 	}
-	keys, err := a.queries.GetPubkeysSince(c.Context(), &sinceTime)
+	keys, err := a.queries.GetPubkeysSince(c.Context(), sinceTime)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),

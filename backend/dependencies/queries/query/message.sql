@@ -1,11 +1,15 @@
 -- name: AddPubkey :one
-INSERT INTO message.pubkey (pubkey, submit_time) VALUES ($1, $2) RETURNING *;
+INSERT INTO message.pubkey (pubkey, submit_time) VALUES ($1, $2) 
+ON CONFLICT (pubkey) DO UPDATE SET submit_time = EXCLUDED.submit_time 
+RETURNING *;
 
 -- name: GetPubkeysSince :many
-SELECT * FROM message.pubkey WHERE submit_time > $1;
+SELECT * FROM message.pubkey WHERE submit_time > $1 LIMIT 1000;
 
 -- name: AddMessage :one
-INSERT INTO message.message (id, prefix, message, submit_time) VALUES ($1, $2, $3, $4) RETURNING *;
+INSERT INTO message.message (index, message, submit_time) VALUES ($1, $2, $3) 
+ON CONFLICT (index, message) DO UPDATE SET submit_time = EXCLUDED.submit_time 
+RETURNING *;
 
--- name: GetMessagesByPrefix :many
-SELECT * FROM message.message WHERE prefix = $1;
+-- name: GetMessagesByIndex :many
+SELECT * FROM message.message WHERE index = $1;
