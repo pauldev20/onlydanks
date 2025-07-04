@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"proto-dankmessaging/backend/api"
+	"proto-dankmessaging/backend/blob"
 	"proto-dankmessaging/backend/dependencies"
 	"proto-dankmessaging/backend/dependencies/config"
 	"runtime/debug"
@@ -22,29 +24,52 @@ func main() {
 	setupLogger(dep.Config)
 
 	wg := sync.WaitGroup{}
-	api := startAPI(&wg, dep)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	b := blob.NewBlob(dep)
+	startBlob(ctx, b, &wg)
+
+	api := api.NewAPI(dep, b)
+	startAPI(api, &wg)
+
 	log.Info().Msg("server running")
-	gracefulShutdown(api, &wg)
+	gracefulShutdown(api, cancel, &wg)
+}
+
+func startBlob(
+	ctx context.Context,
+	blob *blob.Blob,
+	wg *sync.WaitGroup,
+) {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := blob.Start(ctx)
+		if err != nil {
+			log.Fatal().Err(err).Msg("failed to start blob")
+		}
+		log.Info().Msg("blob stopped")
+	}()
 }
 
 func startAPI(
+	api *api.API,
 	wg *sync.WaitGroup,
-	dep *dependencies.Dependencies,
-) *api.API {
+) {
 	wg.Add(1)
-	api := api.NewAPI(dep)
 	go func() {
 		defer wg.Done()
 		err := api.Start()
 		if err != nil {
 			log.Fatal().Err(err).Msg("failed to start api")
 		}
+		log.Info().Msg("api stopped")
 	}()
-	return api
 }
 
 func gracefulShutdown(
 	api *api.API,
+	cancel context.CancelFunc,
 	wg *sync.WaitGroup,
 ) {
 	sigChannel := make(chan os.Signal, 1)
@@ -52,6 +77,7 @@ func gracefulShutdown(
 	<-sigChannel
 
 	log.Warn().Msg("shutting down gracefully, press Ctrl+C again to force")
+	cancel()
 	done := make(chan bool)
 	go func() {
 		api.Stop()
@@ -79,7 +105,6 @@ func setupLogger(c *config.Config) {
 	log.Logger = log.With().Caller().Logger()
 	if c.LogType == "plain" {
 		log.Logger = log.Logger.Output(
-			//exhaustruct:ignore
 			zerolog.ConsoleWriter{Out: os.Stderr},
 		)
 	}

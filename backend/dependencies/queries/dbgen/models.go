@@ -4,6 +4,18 @@
 
 package dbgen
 
-type Account struct {
-	Name string
+import (
+	"time"
+)
+
+type MessageMessage struct {
+	ID         string
+	Prefix     *string
+	Message    *string
+	SubmitTime *time.Time
+}
+
+type MessagePubkey struct {
+	Pubkey     string
+	SubmitTime *time.Time
 }
