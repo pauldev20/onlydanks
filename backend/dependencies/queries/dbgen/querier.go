@@ -6,13 +6,30 @@ package dbgen
 
 import (
 	"context"
+	"time"
 )
 
 type Querier interface {
-	//Test
+	//AddMessage
 	//
-	//  SELECT 1
-	Test(ctx context.Context) (int32, error)
+	//  INSERT INTO message.message (index, message, submit_time) VALUES ($1, $2, $3)
+	//  ON CONFLICT (index, message) DO UPDATE SET submit_time = EXCLUDED.submit_time
+	//  RETURNING id, index, message, submit_time
+	AddMessage(ctx context.Context, arg AddMessageParams) (MessageMessage, error)
+	//AddPubkey
+	//
+	//  INSERT INTO message.pubkey (pubkey, submit_time) VALUES ($1, $2)
+	//  ON CONFLICT (pubkey) DO UPDATE SET submit_time = EXCLUDED.submit_time
+	//  RETURNING pubkey, submit_time
+	AddPubkey(ctx context.Context, arg AddPubkeyParams) (MessagePubkey, error)
+	//GetMessagesByIndex
+	//
+	//  SELECT id, index, message, submit_time FROM message.message WHERE index = $1
+	GetMessagesByIndex(ctx context.Context, index string) ([]MessageMessage, error)
+	//GetPubkeysSince
+	//
+	//  SELECT pubkey, submit_time FROM message.pubkey WHERE submit_time > $1 LIMIT 1000
+	GetPubkeysSince(ctx context.Context, submitTime time.Time) ([]MessagePubkey, error)
 }
 
 var _ Querier = (*Queries)(nil)
