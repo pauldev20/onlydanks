@@ -1,5 +1,4 @@
 import { Page } from '@/components/PageLayout';
-import { Login } from '@/components/Login';
 import { TopBar } from '@worldcoin/mini-apps-ui-kit-react';
 import Image from 'next/image';
 
@@ -49,7 +48,6 @@ export default async function Home() {
             even the act of *reading* remains private — the receiver blends in with everyone else passively scanning blobs.
           </p>
         </div>
-        <Login />
       </Page.Main>
     </>
   );

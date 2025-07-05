@@ -15,7 +15,6 @@ export default async function Wallet() {
               <p className="text-sm font-semibold capitalize">
                 {session?.user.username}
               </p>
-              <Marble src={session?.user.profilePictureUrl} className="w-12" />
             </div>
           }
         />

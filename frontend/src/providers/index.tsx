@@ -2,7 +2,7 @@
 import { MiniKitProvider } from '@worldcoin/minikit-js/minikit-provider';
 import { Session } from 'next-auth';
 import { SessionProvider } from 'next-auth/react';
-import dynamic from 'next/dynamic';
+
 import type { ReactNode } from 'react';
 import { WagmiProvider } from 'wagmi';
 import { config } from '@/wagmi/config';
@@ -11,10 +11,10 @@ import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { RainbowKitSiweNextAuthProvider } from '@rainbow-me/rainbowkit-siwe-next-auth';
 
 
-const ErudaProvider = dynamic(
-  () => import('@/providers/Eruda').then((c) => c.ErudaProvider),
-  { ssr: false },
-);
+// const ErudaProvider = dynamic(
+//   () => import('@/providers/Eruda').then((c) => c.ErudaProvider),
+//   { ssr: false },
+// );
 
 interface ClientProvidersProps {
   children: ReactNode;
