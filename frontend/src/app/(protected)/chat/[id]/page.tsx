@@ -71,13 +71,6 @@ export default function ChatPage() {
           {selected.address.slice(0, 6) + '...' + selected.address.slice(-4)}
         </span>
         </div>
-
-        <div className="ml-auto flex items-center gap-3">
-          {/* optional icons: call, video, menu */}
-          <Image src="/etherscan.png" alt="call" width={12} height={12} className="w-5 h-5 text-gray-600" />
-          <Image src="/x.png" alt="x.com" width={12} height={12} className="w-5 h-5 text-gray-600" />
-          {/* <DotsVerticalIcon className="w-5 h-5 text-gray-600" /> */}
-        </div>
       </div>
     )}
 

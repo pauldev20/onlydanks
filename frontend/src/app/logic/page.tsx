@@ -1,11 +1,13 @@
 'use client';
 
 import { createPublicClient, http } from 'viem';
-import { sepolia } from 'viem/chains';
+import { sepolia, worldchainSepolia } from 'viem/chains';
 import { normalize, namehash } from 'viem/ens';
 import { useState, useEffect } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import ensResolverAbi from '@/abi/ENSPublicResolver.json';
+import ensRegistrarAbi from '@/abi/L2Registrar.json';
+import ensRegistryAbi from '@/abi/ENSRegistry.json';
 import { useWalletClient } from 'wagmi'
 import { ec as EC } from 'elliptic';
 import { keccak256 } from 'js-sha3';
@@ -71,6 +73,8 @@ export default function LogicPage() {
 	const [message, setMessage] = useState<string>("");
 	const [recipient, setRecipient] = useState<string>("");
 	const [lastReceivedMessage, setLastReceivedMessage] = useState<string>("");
+
+	const [newEnsName, setNewEnsName] = useState<string>("");
 
 	const { data: walletClient } = useWalletClient();
 
@@ -248,6 +252,32 @@ export default function LogicPage() {
 		setLastReceivedMessage(decryptedMessages[decryptedMessages.length - 1].message);
 	}
 
+	const registerENS = async () => {
+		if (!walletClient) return;
+		const privateKey = localStorage.getItem('com.dankchat.privateKey');
+		if (!privateKey) return;
+		const keyPair = ec.keyFromPrivate(privateKey, 'hex');
+		const publicKey = keyPair.getPublic();
+		const ethPubKey = `0x${publicKey.getY().toString("hex").slice(-40)}`;
+		await walletClient.writeContract({
+			address: "0x1468386e6ABb1874c0d9fD43899EbD21A12470A6" as `0x${string}`,
+			abi: ensRegistrarAbi,
+			functionName: 'register',
+			chain: worldchainSepolia,
+			args: ["lol123", "0x522F3038F78d91dADA58F8A768be7611134767D5"],
+		});
+	}
+
+	const setENSRecord = async () => {
+		if (!walletClient) return;
+		await walletClient.writeContract({
+			address: "0x41Fb196Ae7D65E06880A240c8d1B91245Fb84807" as `0x${string}`,
+			abi: ensRegistryAbi,
+			functionName: 'setText',
+			args: [namehash(normalize("lol123.onlydanks.eth")), "com.dankchat.publicKey", "0xaa9e420a573725371eceaee00b2273dd452dd6277df644716a61c6ab31df45628716af5dbd0149b3832b0b2002580437071801b327a4dc4171aaeee6b49faec7"],
+		});
+	}
+
   return (
 	<div className='flex flex-col items-center justify-center'>
 		<h1>Chat</h1>
@@ -269,6 +299,11 @@ export default function LogicPage() {
 		<div className='flex flex-row gap-2'>
 			<h2>4. Read Message: {lastReceivedMessage}</h2>
 			<button onClick={readMessages}>Read Messages</button>
+		</div>
+		<div>
+			<input type="text" placeholder="New ENS Name" value={newEnsName} onChange={(e) => setNewEnsName(e.target.value)} />
+			<button onClick={registerENS}>Register ENS</button>
+			<button onClick={setENSRecord}>Set ENS Record</button>
 		</div>
 	</div>
   );
