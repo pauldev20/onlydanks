@@ -8,13 +8,14 @@ import { WagmiProvider } from 'wagmi';
 import { config } from '@/wagmi/config';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
+import { RainbowKitSiweNextAuthProvider } from '@rainbow-me/rainbowkit-siwe-next-auth';
+
 
 const ErudaProvider = dynamic(
   () => import('@/providers/Eruda').then((c) => c.ErudaProvider),
   { ssr: false },
 );
 
-// Define props for ClientProviders
 interface ClientProvidersProps {
   children: ReactNode;
   session: Session | null; // Use the appropriate type for session from next-auth
@@ -22,18 +23,6 @@ interface ClientProvidersProps {
 
 const queryClient = new QueryClient();
 
-/**
- * ClientProvider wraps the app with essential context providers.
- *
- * - ErudaProvider:
- *     - Should be used only in development.
- *     - Enables an in-browser console for logging and debugging.
- *
- * - MiniKitProvider:
- *     - Required for MiniKit functionality.
- *
- * This component ensures both providers are available to all child components.
- */
 export default function ClientProviders({
   children,
   session,
@@ -41,13 +30,17 @@ export default function ClientProviders({
   return (
 	<WagmiProvider config={config}>
 		<QueryClientProvider client={queryClient}>
-			<RainbowKitProvider>
-				{/* <ErudaProvider> */}
-				<MiniKitProvider>
-					<SessionProvider session={session}>{children}</SessionProvider>
-				</MiniKitProvider>
-				{/* </ErudaProvider> */}
-			</RainbowKitProvider>
+			<MiniKitProvider>
+				<SessionProvider session={session}>
+					<RainbowKitSiweNextAuthProvider>
+						<RainbowKitProvider>
+							{/* <ErudaProvider> */}
+								{children}
+							{/* </ErudaProvider> */}
+						</RainbowKitProvider>
+					</RainbowKitSiweNextAuthProvider>
+				</SessionProvider>
+			</MiniKitProvider>
 		</QueryClientProvider>
 	</WagmiProvider>
   );
