@@ -39,11 +39,11 @@ async function decrypt(ciphertext: ArrayBuffer, iv: Uint8Array, key: CryptoKey):
 function recoverPublicKey(message: string, signatureHex: string): string {
 	const ec = new EC('secp256k1');
 	const msgHash = Buffer.from(keccak256(Buffer.from(message)), 'hex');
-  
+
 	const r = signatureHex.slice(0, 64);
 	const s = signatureHex.slice(64, 128);
 	const v = parseInt(signatureHex.slice(128, 130), 16);
-  
+
 	const signature = { r, s };
 	const recoveredPub = ec.recoverPubKey(msgHash, signature, v);
 	return ec.keyFromPublic(recoveredPub).getPublic(false, 'hex'); // uncompressed

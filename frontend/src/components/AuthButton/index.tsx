@@ -6,12 +6,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useSession } from "next-auth/react";
 import { redirect } from 'next/navigation';
+import { ec as EC } from 'elliptic';
 
-/**
- * This component is an example of how to authenticate a user
- * We will use Next Auth for this example, but you can use any auth provider
- * Read More: https://docs.world.org/mini-apps/commands/wallet-auth
- */
+
+const ec = new EC('secp256k1');
+
 export const AuthButton = () => {
   const [isPending, setIsPending] = useState(false);
   const { isInstalled } = useMiniKit();
@@ -52,7 +51,12 @@ export const AuthButton = () => {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      redirect('/home');
+		const privateKey = localStorage.getItem('com.dankchat.privateKey');
+		if (!privateKey) {
+			const keyPair = ec.genKeyPair();
+			localStorage.setItem('com.dankchat.privateKey', keyPair.getPrivate().toString('hex'));
+		}
+      	redirect('/home');
     }
   }, [status]);
 
