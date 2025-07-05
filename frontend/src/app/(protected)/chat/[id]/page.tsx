@@ -4,6 +4,7 @@
 import { useParams } from 'next/navigation';
 import { useChat } from '@/lib/ChatContext';
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 
 export default function ChatPage() {
   const { id } = useParams();
@@ -43,6 +44,20 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-screen">
+      {/* profile */}
+      {selected && (
+      <div className="flex items-center gap-4 px-4 py-3 border-b bg-white shadow-sm">
+        <Image
+            src={selected.avatar}
+            alt={selected.name}
+            width={48}
+            height={48}
+            className="rounded-full object-cover mr-4"
+            />
+        <span className="font-medium text-lg">{selected.name}</span>
+      </div>
+    )}
+    {/* messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
         {selected?.messages.map((m, i) => (
           <div
