@@ -130,6 +130,20 @@ func (q *Queries) GetBlobSubmissions(ctx context.Context) ([]MessageBlobSubmissi
 	return items, nil
 }
 
+const getBlobUpdate = `-- name: GetBlobUpdate :one
+SELECT block_height FROM message.blob_update LIMIT 1
+`
+
+// GetBlobUpdate
+//
+//	SELECT block_height FROM message.blob_update LIMIT 1
+func (q *Queries) GetBlobUpdate(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, getBlobUpdate)
+	var block_height int64
+	err := row.Scan(&block_height)
+	return block_height, err
+}
+
 const getMessagesByIndex = `-- name: GetMessagesByIndex :many
 SELECT id, index, message, submit_time, needs_submission FROM message.blob WHERE index = $1
 `
@@ -199,5 +213,29 @@ DELETE FROM message.blob_submission WHERE id = $1
 //	DELETE FROM message.blob_submission WHERE id = $1
 func (q *Queries) RemoveBlobSubmission(ctx context.Context, id int32) error {
 	_, err := q.db.Exec(ctx, removeBlobSubmission, id)
+	return err
+}
+
+const setBlobUpdate = `-- name: SetBlobUpdate :exec
+INSERT INTO message.blob_update (block_height) VALUES ($1)
+`
+
+// SetBlobUpdate
+//
+//	INSERT INTO message.blob_update (block_height) VALUES ($1)
+func (q *Queries) SetBlobUpdate(ctx context.Context, blockHeight int64) error {
+	_, err := q.db.Exec(ctx, setBlobUpdate, blockHeight)
+	return err
+}
+
+const updateBlobUpdate = `-- name: UpdateBlobUpdate :exec
+UPDATE message.blob_update SET block_height = $1
+`
+
+// UpdateBlobUpdate
+//
+//	UPDATE message.blob_update SET block_height = $1
+func (q *Queries) UpdateBlobUpdate(ctx context.Context, blockHeight int64) error {
+	_, err := q.db.Exec(ctx, updateBlobUpdate, blockHeight)
 	return err
 }

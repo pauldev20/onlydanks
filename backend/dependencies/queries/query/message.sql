@@ -24,3 +24,13 @@ SELECT * FROM message.blob_submission;
 
 -- name: RemoveBlobSubmission :exec
 DELETE FROM message.blob_submission WHERE id = $1;
+
+-- name: SetBlobUpdate :exec
+INSERT INTO message.blob_update (block_height) VALUES ($1);
+
+-- name: UpdateBlobUpdate :exec
+UPDATE message.blob_update SET block_height = $1;
+
+-- name: GetBlobUpdate :one
+SELECT * FROM message.blob_update LIMIT 1;
+

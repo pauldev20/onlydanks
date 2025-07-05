@@ -6,6 +6,7 @@ import (
 	"proto-dankmessaging/backend/dependencies/queries/dbgen"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 type API struct {
@@ -21,6 +22,10 @@ func NewAPI(dep *dependencies.Dependencies) *API {
 		dep:     dep,
 		queries: queries,
 	}
+
+	// Add CORS middleware to allow all origins
+	api.app.Use(cors.New())
+
 	api.app.Get("/keys", api.GetKeys)
 	api.app.Get("/messages/:index", api.GetMessage)
 	api.app.Post("/messages", api.PostMessage)

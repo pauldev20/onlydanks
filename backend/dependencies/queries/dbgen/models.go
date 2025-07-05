@@ -23,6 +23,10 @@ type MessageBlobSubmission struct {
 	Pubkey  []byte
 }
 
+type MessageBlobUpdate struct {
+	BlockHeight int64
+}
+
 type MessagePubkey struct {
 	Pubkey     []byte
 	SubmitTime time.Time

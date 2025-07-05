@@ -32,6 +32,10 @@ type Querier interface {
 	//
 	//  SELECT id, index, message, pubkey FROM message.blob_submission
 	GetBlobSubmissions(ctx context.Context) ([]MessageBlobSubmission, error)
+	//GetBlobUpdate
+	//
+	//  SELECT block_height FROM message.blob_update LIMIT 1
+	GetBlobUpdate(ctx context.Context) (int64, error)
 	//GetMessagesByIndex
 	//
 	//  SELECT id, index, message, submit_time, needs_submission FROM message.blob WHERE index = $1
@@ -44,6 +48,14 @@ type Querier interface {
 	//
 	//  DELETE FROM message.blob_submission WHERE id = $1
 	RemoveBlobSubmission(ctx context.Context, id int32) error
+	//SetBlobUpdate
+	//
+	//  INSERT INTO message.blob_update (block_height) VALUES ($1)
+	SetBlobUpdate(ctx context.Context, blockHeight int64) error
+	//UpdateBlobUpdate
+	//
+	//  UPDATE message.blob_update SET block_height = $1
+	UpdateBlobUpdate(ctx context.Context, blockHeight int64) error
 }
 
 var _ Querier = (*Queries)(nil)

@@ -22,3 +22,6 @@ CREATE TABLE message.blob_submission (
   UNIQUE (index, message, pubkey)
 );
 
+CREATE TABLE message.blob_update (
+  block_height BIGINT NOT NULL
+);
