@@ -1,5 +1,5 @@
-RPC_SEPOLIA="https://sepolia.drpc.org"
-RPC=$(RPC_SEPOLIA)
+RPC_WORLDSEPOLIA="https://worldchain-sepolia.g.alchemy.com/public"
+RPC=$(RPC_WORLDSEPOLIA)
 
 include .env
 export
@@ -8,19 +8,20 @@ export
 
 none:
 
-ensSub-deploy:
-	forge script script/ENSSubdomainCreator.s.sol:Deploy --broadcast --fork-url $(RPC_SEPOLIA) --private-key $(PRIVATE_KEY) -vvvv --ffi
-ensSub-verify:
+deploy:
+	forge script script/L2Registrar.s.sol:Deploy --broadcast --fork-url $(RPC) --private-key $(PRIVATE_KEY) -vvvv --ffi
+verify:
 	forge verify-contract \
-	0x927fB1414F83905620F460B024bcFf2dD1dA430c \
-	src/ENSSubdomainCreator.sol:ENSSubdomainCreator \
+	0x1468386e6ABb1874c0d9fD43899EbD21A12470A6 \
+	src/L2Registrar.sol:L2Registrar \
 	-e $(ETHERSCAN_API_KEY) \
-	--rpc-url $(RPC_SEPOLIA) \
+	--rpc-url $(RPC) \
 	--guess-constructor-args \
-	--chain sepolia \
+	--chain world-sepolia \
 	--watch
-ensSub-addEventDomain:
-	forge script script/ENSSubdomainCreator.s.sol:AddEventDomain --broadcast --fork-url $(RPC_SEPOLIA) --private-key $(PRIVATE_KEY) -vvvv --ffi
-ensSub-addEventSubDomain:
-	forge script script/ENSSubdomainCreator.s.sol:AddEventSubDomain asd 0x9F79941335e54A11eCD13cedf58375657FdA97A1 --sig 'run(string,address)' --broadcast --fork-url $(RPC_SEPOLIA) --private-key $(PRIVATE_KEY) -vvvv --ffi
+testgetname:
+	forge script script/L2Registrar.s.sol:TestGetName --broadcast --fork-url $(RPC) --private-key $(PRIVATE_KEY) -vvvv --ffi
+test:
+	forge test --fork-url ${RPC} -vvvv
 
+.PHONY: deploy verify testgetname test
