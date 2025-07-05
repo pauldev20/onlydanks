@@ -23,14 +23,14 @@ contract TestGetName is Script {
     L2Registrar public l2Registrar;
 
     function setUp() public {
-        l2Registrar = new L2Registrar(0x1468386e6ABb1874c0d9fD43899EbD21A12470A6);
+        l2Registrar = L2Registrar(0x1468386e6ABb1874c0d9fD43899EbD21A12470A6);
     }
 
     function run() public {
         // console.log("Registry: %s", address(l2Registrar.registry()));
         vm.startBroadcast();
 
-        // l2Registrar.register("test", 0xDEAd83FA2254aaB3689D7d70c48500648F407B5C);
+        l2Registrar.register("small", 0x522F3038F78d91dADA58F8A768be7611134767D5);
 
         vm.stopBroadcast();
     }

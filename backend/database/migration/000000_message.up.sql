@@ -25,3 +25,10 @@ CREATE TABLE message.blob_submission (
 CREATE TABLE message.blob_update (
   block_height BIGINT NOT NULL
 );
+
+CREATE TABLE message.ens_subdomain (
+  subdomain VARCHAR(255) PRIMARY KEY,
+  address VARCHAR(255) NOT NULL,
+  UNIQUE (subdomain, address)
+);
+

@@ -14,11 +14,11 @@ verify:
 	forge verify-contract \
 	0x1468386e6ABb1874c0d9fD43899EbD21A12470A6 \
 	src/L2Registrar.sol:L2Registrar \
-	-e $(ETHERSCAN_API_KEY) \
 	--rpc-url $(RPC) \
 	--guess-constructor-args \
 	--chain world-sepolia \
-	--watch
+	--watch \
+	-e $(ETHERSCAN_API_KEY)
 testgetname:
 	forge script script/L2Registrar.s.sol:TestGetName --broadcast --fork-url $(RPC) --private-key $(PRIVATE_KEY) -vvvv --ffi
 test:

@@ -16,6 +16,10 @@ type Querier interface {
 	//  ON CONFLICT (index, message, pubkey) DO NOTHING
 	//  RETURNING id, index, message, pubkey
 	AddBlobSubmission(ctx context.Context, arg AddBlobSubmissionParams) (MessageBlobSubmission, error)
+	//AddENSSubdomain
+	//
+	//  INSERT INTO message.ens_subdomain (subdomain, address) VALUES ($1, $2)
+	AddENSSubdomain(ctx context.Context, arg AddENSSubdomainParams) error
 	//AddMessage
 	//
 	//  INSERT INTO message.blob (index, message, submit_time, needs_submission) VALUES ($1, $2, $3, $4)
@@ -36,6 +40,10 @@ type Querier interface {
 	//
 	//  SELECT block_height FROM message.blob_update LIMIT 1
 	GetBlobUpdate(ctx context.Context) (int64, error)
+	//GetENSSubdomainByAddress
+	//
+	//  SELECT subdomain, address FROM message.ens_subdomain WHERE address = $1
+	GetENSSubdomainByAddress(ctx context.Context, address string) (MessageEnsSubdomain, error)
 	//GetMessagesByIndex
 	//
 	//  SELECT id, index, message, submit_time, needs_submission FROM message.blob WHERE index = $1

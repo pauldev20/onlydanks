@@ -27,6 +27,11 @@ type MessageBlobUpdate struct {
 	BlockHeight int64
 }
 
+type MessageEnsSubdomain struct {
+	Subdomain string
+	Address   string
+}
+
 type MessagePubkey struct {
 	Pubkey     []byte
 	SubmitTime time.Time
