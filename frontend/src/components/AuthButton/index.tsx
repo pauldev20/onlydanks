@@ -56,7 +56,7 @@ export const AuthButton = () => {
 			const keyPair = ec.genKeyPair();
 			localStorage.setItem('com.dankchat.privateKey', keyPair.getPrivate().toString('hex'));
 		}
-      	redirect('/home');
+      	redirect('/chat');
     }
   }, [status]);
 
