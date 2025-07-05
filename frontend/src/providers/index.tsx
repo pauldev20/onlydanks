@@ -4,6 +4,10 @@ import { Session } from 'next-auth';
 import { SessionProvider } from 'next-auth/react';
 import dynamic from 'next/dynamic';
 import type { ReactNode } from 'react';
+import { WagmiProvider } from 'wagmi';
+import { config } from '@/wagmi/config';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 
 const ErudaProvider = dynamic(
   () => import('@/providers/Eruda').then((c) => c.ErudaProvider),
@@ -15,6 +19,8 @@ interface ClientProvidersProps {
   children: ReactNode;
   session: Session | null; // Use the appropriate type for session from next-auth
 }
+
+const queryClient = new QueryClient();
 
 /**
  * ClientProvider wraps the app with essential context providers.
@@ -33,10 +39,16 @@ export default function ClientProviders({
   session,
 }: ClientProvidersProps) {
   return (
-    <ErudaProvider>
-      <MiniKitProvider>
-        <SessionProvider session={session}>{children}</SessionProvider>
-      </MiniKitProvider>
-    </ErudaProvider>
+	<WagmiProvider config={config}>
+		<QueryClientProvider client={queryClient}>
+			<RainbowKitProvider>
+				{/* <ErudaProvider> */}
+				<MiniKitProvider>
+					<SessionProvider session={session}>{children}</SessionProvider>
+				</MiniKitProvider>
+				{/* </ErudaProvider> */}
+			</RainbowKitProvider>
+		</QueryClientProvider>
+	</WagmiProvider>
   );
 }
