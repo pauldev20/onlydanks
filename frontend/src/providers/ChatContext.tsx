@@ -4,7 +4,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useAccount, useWalletClient } from 'wagmi';
 import { useSession } from 'next-auth/react';
-
 import { keccak256 } from 'js-sha3';
 import { ec as EC } from 'elliptic';
 import BN from 'bn.js';
@@ -28,6 +27,7 @@ interface ChatContextType {
   contacts: Contact[];
   setContacts: (contacts: Contact[]) => void;
   sendMessage: (message: string, recipient: string) => Promise<void>;
+  startNewChat: (ensName: string) => Promise<number | null>;
   registered: boolean;
 }
 
@@ -144,6 +144,36 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 	});
   }
 
+ const startNewChat = async (ensName: string): Promise<number | null> => {
+  // check if it's already in contacts
+  const normalized = ensName.trim().toLowerCase();
+
+
+  const existing = contacts.find(c => c.address.toLowerCase() === normalized);
+  if (existing) return existing.id;
+
+  try {
+    // resolve ENS to address (you could replace this with a public key fetch if you store pubkeys separately)
+    // const res = await fetch(`https://sepolia-ens.wtf/resolve/${ensName}`); // replace with your ENS resolver
+    // const json = await res.json();
+    // const resolved = json.address;
+
+    // if (!resolved || !resolved.startsWith('0x')) return null;
+
+    const newContact = {
+      id: contacts.length,
+      address: normalized,
+      messages: [],
+    };
+
+    setContacts(prev => [...prev, newContact]);
+    return newContact.id;
+  } catch (err) {
+    console.warn('ENS resolution failed', err);
+    return null;
+  }
+};
+
   const sendMessage = async (message: string, recipient: string) => {
     if (!isConnected || !walletClient || !registered) return;
 
@@ -194,6 +224,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 		contactId = contacts.length;
 	}
 
+
 	/* ------------------------------- Add Message ------------------------------ */
 	setContacts(prev => {
 		const newContacts = [...prev];
@@ -207,11 +238,12 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <ChatContext.Provider value={{ contacts, setContacts, sendMessage, registered }}>
+    <ChatContext.Provider value={{ contacts, setContacts, sendMessage, startNewChat, registered }}>
       {children}
     </ChatContext.Provider>
   );
 };
+
 
 export const useChat = () => {
   const context = useContext(ChatContext);

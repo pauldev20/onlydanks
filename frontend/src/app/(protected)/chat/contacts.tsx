@@ -5,12 +5,22 @@ import { useChat } from '@/providers/ChatContext';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ListItem } from '@worldcoin/mini-apps-ui-kit-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 
 export default function ContactsPage() {
-  const { contacts } = useChat();
+  const { contacts, startNewChat } = useChat(); // assume you have a function to init new chat
+  const [search, setSearch] = useState('');
   const router = useRouter();
+
+  const handleSearch = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && search.trim() !== '') {
+      const ens = search.trim().toLowerCase();
+      const newChatId = await startNewChat(ens); // create or retrieve chat ID
+      setSearch('');
+      if (newChatId) router.push(`/chat/${newChatId}`);
+    }
+  };
 
   const sortedContacts = useMemo(() => {
     return [...contacts].sort((a, b) => {
@@ -28,6 +38,16 @@ export default function ContactsPage() {
   return (
 
     <div className="h-screen overflow-y-auto ">
+        <div className="flex flex-col p-4 space-y-2">
+      <input
+        type="text"
+        placeholder="Search ENS name..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        onKeyDown={handleSearch}
+        className="p-2 rounded border border-gray-300 focus:outline-none focus:ring"
+      />
+      </div>
       {sortedContacts.map(c => {
         const last = c.messages[c.messages.length - 1];
         const unread = c.messages.some(m => !m.fromMe && m.unread);
