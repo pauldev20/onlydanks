@@ -17,7 +17,7 @@ export default function ContactsPage() {
   const handleSearch = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && search.trim() !== '') {
       const ens = search.trim().toLowerCase();
-      const newChatId = await startNewChat(ens); // create or retrieve chat ID
+      const newChatId = await startNewChat(ens);
       setSearch('');
       if (newChatId) router.push(`/chat/${newChatId}`);
     }
@@ -43,7 +43,7 @@ export default function ContactsPage() {
         <div className="flex flex-col p-4 space-y-2">
       <input
         type="text"
-        placeholder="Search ENS name..."
+        placeholder="Start new chat..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         onKeyDown={handleSearch}
