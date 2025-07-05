@@ -6,6 +6,12 @@ import {
 } from '@worldcoin/minikit-js';
 import NextAuth, { type DefaultSession } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
+// import { getCsrfToken } from 'next-auth/react';
+import {
+	type SiweMessage,
+	parseSiweMessage,
+	validateSiweMessage,
+} from 'viem/siwe';
 
 declare module 'next-auth' {
   interface User {
@@ -30,8 +36,84 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
   session: { strategy: 'jwt' },
   providers: [
+	Credentials({
+		name: 'Ethereum',
+		credentials: {
+			message: {
+			  label: 'Message',
+			  placeholder: '0x0',
+			  type: 'text',
+			},
+			signature: {
+			  label: 'Signature',
+			  placeholder: '0x0',
+			  type: 'text',
+			},
+		},
+		// @ts-expect-error TODO
+		async authorize(credentials: {
+			message: string;
+			signature: `0x${string}`;
+		}) {
+		  try {
+			const siweMessage = parseSiweMessage(
+			  credentials?.message,
+			) as SiweMessage;
+  
+			if (
+			  !validateSiweMessage({
+				address: siweMessage?.address,
+				message: siweMessage,
+			  })
+			) {
+			  return null;
+			}
+  
+			const nextAuthUrl =
+			  process.env.AUTH_URL ||
+			  (process.env.VERCEL_URL
+				? `https://${process.env.VERCEL_URL}`
+				: null);
+			if (!nextAuthUrl) {
+			  return null;
+			}
+  
+			const nextAuthHost = new URL(nextAuthUrl).host;
+			if (siweMessage.domain !== nextAuthHost) {
+			  return null;
+			}
+  
+			// @todo fix later
+			// if (
+			//   siweMessage.nonce !==
+			//   (await getCsrfToken({ req: { headers: req.headers } }))
+			// ) {	
+			//   return null;
+			// }
+  
+			// const valid = await publicClient.verifyMessage({
+			//   address: siweMessage?.address,
+			//   message: credentials?.message,
+			//   signature: credentials?.signature,
+			// });
+			const valid = true;
+  
+			if (!valid) {
+			  return null;
+			}
+  
+			return {
+			  id: siweMessage.address,
+			};
+		  } catch (e) {
+			console.error('Error authorizing user', e);
+			return null;
+		  }
+		},
+	}),
     Credentials({
       name: 'World App Wallet',
+	  id: 'world-app-wallet',
       credentials: {
         nonce: { label: 'Nonce', type: 'text' },
         signedNonce: { label: 'Signed Nonce', type: 'text' },

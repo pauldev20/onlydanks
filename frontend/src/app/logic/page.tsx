@@ -10,17 +10,40 @@ import { getWalletClient } from '@wagmi/core';
 import { config } from '@/wagmi/config';
 import ensResolverAbi from '@/abi/ENSPublicResolver.json';
 import { useWalletClient } from 'wagmi'
-import * as secp from '@noble/secp256k1';
+import { ec as EC } from 'elliptic';
 
 
+const ec = new EC('secp256k1');
 
+async function deriveAesKey(sharedSecretHex: string): Promise<CryptoKey> {
+	const sharedSecretBytes = new Uint8Array(Buffer.from(sharedSecretHex, 'hex'));
+	const hash = await crypto.subtle.digest('SHA-256', sharedSecretBytes);
+  
+	return crypto.subtle.importKey('raw', hash, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+}
+
+async function encrypt(message: string, key: CryptoKey): Promise<{ ciphertext: ArrayBuffer, iv: Uint8Array }> {
+	const textEncoder = new TextEncoder();
+	// const iv = crypto.getRandomValues(new Uint8Array(12));
+	// @todo fix this
+	const iv = new Uint8Array([119, 89, 120, 213, 240, 241, 182, 85, 42, 241, 164, 2]);
+	const encoded = textEncoder.encode(message);
+	const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded);
+	return { ciphertext, iv };
+}
+
+async function decrypt(ciphertext: ArrayBuffer, iv: Uint8Array, key: CryptoKey): Promise<string> {
+	const textDecoder = new TextDecoder();
+	const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+	return textDecoder.decode(decrypted);
+}
 
 export default function LogicPage() {
 	const [ensName, setEnsName] = useState<string>("");
 	const [walletAddress, setWalletAddress] = useState<string>("0x522F3038F78d91dADA58F8A768be7611134767D5");
 	const [dankAddress, setDankAddress] = useState<string>("");
 
-	const [keyPair, setKeyPair] = useState<CryptoKeyPair | null>(null);
+	const [keyPair, setKeyPair] = useState<EC.KeyPair | null>(null);
 
 	const [message, setMessage] = useState<string>("");
 	const [recipient, setRecipient] = useState<string>("");
@@ -35,99 +58,85 @@ export default function LogicPage() {
 
 	useEffect(() => {
 		(async () => {
-			console.log(crypto.getRandomValues(new Uint8Array(12)), "iv");
 			if (!walletClient) return;
 			const ensName = await client.getEnsName({
 				address: walletClient.account.address,
 			});
 			setEnsName(ensName ?? "");
-			const dankChatAddress = await client.getEnsText({
+			const ensResolverAddress = await client.getEnsResolver({
 				name: normalize(ensName ?? ""),
-				key: 'com.dankchat',
 			});
-			if (dankChatAddress && isAddress(dankChatAddress)) {
+			const [pubX, pubY] = await client.readContract({
+				address: ensResolverAddress as `0x${string}`,
+				abi: ensResolverAbi,
+				functionName: 'pubkey',
+				args: [namehash(normalize(ensName ?? ""))],
+			}) as [string, string];
+			const dankChatAddress = pubX.slice(2) + pubY.slice(2);
+			console.log(dankChatAddress);
+			if (dankChatAddress && dankChatAddress.length === 128) {
 				setDankAddress(dankChatAddress);
 			}
 		})();
 	}, [walletClient]);
 
 	const onSetDankAddress = async () => {
-		const myKeyPair = await crypto.subtle.generateKey(
-			{ name: "ECDH", namedCurve: "P-256" },
-			true,
-			["deriveBits", "deriveKey"]
-		);
-		const publicKeyRaw = await crypto.subtle.exportKey("raw", myKeyPair.publicKey);
+		const key = ec.genKeyPair();
+		const publicKey = key.getPublic();
+		const privateKey = key.getPrivate();
+		const publicKeyRaw = `${publicKey.getX().toString("hex")}${publicKey.getY().toString("hex")}`;
+
+		console.log("publicKey", publicKeyRaw);
+		console.log("privateKey", privateKey.toString("hex"));
 		
-		const privateKeyRaw = await crypto.subtle.exportKey("pkcs8", myKeyPair.privateKey);
-		const privateKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(privateKeyRaw)));
+		const privateKeyRaw = privateKey.toString("hex");
+		const privateKeyBase64 = btoa(privateKeyRaw.slice(2));
 		localStorage.setItem('dankChatPrivateKey', privateKeyBase64);
-		
+
 		const ensResolverAddress = await client.getEnsResolver({
 			name: normalize(ensName ?? ""),
 		});
-		console.log("publicKeyRaw", `0x${Buffer.from(publicKeyRaw).toString('hex')}`);
+		console.log("publicKeyRaw", `0x${publicKeyRaw}`);
 		console.log("ensResolverAddress", ensResolverAddress);
 		if (!walletClient) return;
 		await walletClient.writeContract({
 			address: ensResolverAddress as `0x${string}`,
 			abi: ensResolverAbi,
-			functionName: 'setText',
-			args: [namehash(normalize(ensName ?? "")), 'com.dankchat', `0x${Buffer.from(publicKeyRaw).toString('hex')}`],
+			functionName: 'setPubkey',
+			args: [namehash(normalize(ensName ?? "")), `0x${Buffer.from(publicKeyRaw.slice(1, 33)).toString('hex')}`, `0x${Buffer.from(publicKeyRaw.slice(33, 65)).toString('hex')}`],
 		});
-		setKeyPair(myKeyPair);
+		setKeyPair(key);
 	};
 
 	const onSendMessage = async () => {
 		if (!keyPair) return;
 		console.log("message", message);
 		console.log("recipient", recipient);
-		const messageKeyPair = await crypto.subtle.generateKey(
-			{ name: "ECDH", namedCurve: "P-256" },
-			true,
-			["deriveKey"]
-		);
-		const importedPublicKey = await crypto.subtle.importKey(
-			"raw",
-			Buffer.from(recipient.slice(2), 'hex'),
-			{ name: "ECDH", namedCurve: "P-256" },
-			true,
-			[]
-		);
-		console.log("importedPublicKey", `0x${Buffer.from(await crypto.subtle.exportKey("raw", importedPublicKey)).toString('hex')}`);
-		const sharedSecret = await crypto.subtle.deriveKey(
-			{
-			  name: "ECDH",
-			  public: importedPublicKey,
-			},
-			messageKeyPair.privateKey,
-			{
-				name: "AES-GCM",
-				length: 256,
-			},
-			true,
-			["encrypt", "decrypt"]
-		);
-		console.log("sharedSecret", sharedSecret);
-		const encryptedMessage = await crypto.subtle.encrypt(
-			{
-				name: "AES-GCM",
-				iv: new Uint8Array([119, 89, 120, 213, 240, 241, 182, 85, 42, 241, 164, 2]),
-			},
-			sharedSecret,
-			new TextEncoder().encode(`${Buffer.from(await crypto.subtle.exportKey("raw", keyPair.publicKey)).toString('hex')}: ${message}`)
-		);
-		console.log("encryptedMessage", btoa(String.fromCharCode(...new Uint8Array(encryptedMessage))));
-		console.log(Buffer.from(await crypto.subtle.exportKey("raw", messageKeyPair.publicKey)).toString('hex'));
+
+		const messageKeyPair = ec.genKeyPair();
+		const recipientPublicKey = recipient.startsWith('0x') ? recipient.slice(2) : recipient;
+		const importedPublicKey = ec.keyFromPublic({
+			x: recipientPublicKey.slice(0, 64),
+			y: recipientPublicKey.slice(64, 128)
+		});
+		console.log("importedPublicKey", importedPublicKey.getPublic().getX().toString("hex"), importedPublicKey.getPublic().getY().toString("hex"));
+		const sharedSecret = messageKeyPair.derive(importedPublicKey.getPublic());
+		console.log("sharedSecret", sharedSecret.toString("hex"));
+
+		const aesEncryptionKey = await deriveAesKey(sharedSecret.toString("hex"));
+		const { ciphertext } = await encrypt(message, aesEncryptionKey);
+
+		console.log("encryptedMessage", btoa(String.fromCharCode(...new Uint8Array(ciphertext))));
+		console.log(Buffer.from(await crypto.subtle.digest('SHA-256', new Uint8Array(Buffer.from(sharedSecret.toString("hex"), 'hex')))).toString('hex'));
 		const response = await fetch('https://proto-dankmessaging-production.up.railway.app/messages', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
 			},
 			body: JSON.stringify({
-				message: btoa(String.fromCharCode(...new Uint8Array(encryptedMessage))),
-				ephemeral_pubkey: `${Buffer.from(await crypto.subtle.exportKey("raw", messageKeyPair.publicKey)).toString('hex')}`,
-				search_index: `${Buffer.from(await crypto.subtle.digest('SHA-256', await crypto.subtle.exportKey('raw', sharedSecret))).toString('hex')}`
+				message: btoa(String.fromCharCode(...new Uint8Array(ciphertext))),
+				ephemeral_pubkey: `${messageKeyPair.getPublic().getX().toString("hex")}${messageKeyPair.getPublic().getY().toString("hex")}`,
+				search_index: Buffer.from(await crypto.subtle.digest('SHA-256', new Uint8Array(Buffer.from(sharedSecret.toString("hex"), 'hex')))).toString('hex')
 			})
 		});
 	
@@ -152,21 +161,20 @@ export default function LogicPage() {
 		console.log("Keys:", keys);
 		const decryptedMessages: { message: string, submit_time: string, sender: string }[] = [];
 		for (const key of keys) {
-			const sharedSecret = await crypto.subtle.deriveKey(
-				{
-				  name: "ECDH",
-				  public: await crypto.subtle.importKey("raw", Buffer.from(key, 'hex'), { name: "ECDH", namedCurve: "P-256" }, true, []),
-				},
-				keyPair.privateKey,
-				{
-					name: "AES-GCM",
-					length: 256,
-				},
-				true,
-				["encrypt", "decrypt"]
-			);
-			console.log("sharedSecret", sharedSecret);
-			const hashedSharedSecret = await crypto.subtle.digest('SHA-256', await crypto.subtle.exportKey('raw', sharedSecret));
+			let importedPublicKey: EC.KeyPair | null = null;
+			let sharedSecret: any | null = null;
+			try {
+				importedPublicKey = ec.keyFromPublic({
+					x: key.slice(0, 64),
+					y: key.slice(64, 128)
+				});
+				sharedSecret = keyPair?.derive(importedPublicKey.getPublic());
+			} catch (error) {
+				console.log("error", error);
+				continue;
+			}
+			console.log("sharedSecret", sharedSecret.toString("hex"));
+			const hashedSharedSecret = Buffer.from(await crypto.subtle.digest('SHA-256', new Uint8Array(Buffer.from(sharedSecret.toString("hex"), 'hex')))).toString('hex');
 			console.log("hashedSharedSecret", hashedSharedSecret);
 			const response = await fetch(`https://proto-dankmessaging-production.up.railway.app/messages/${Buffer.from(hashedSharedSecret).toString('hex')}`, {
 				method: 'GET',
@@ -178,19 +186,13 @@ export default function LogicPage() {
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}
 			const messages = await response.json();
+			const derivedAesKey = await deriveAesKey(sharedSecret.toString("hex"));
 			if (messages.length > 0) {
 				for (const message of messages) {
 					console.log("message", message);
-					const decryptedMessage = await crypto.subtle.decrypt(
-						{
-							name: "AES-GCM",
-							iv: new Uint8Array([119, 89, 120, 213, 240, 241, 182, 85, 42, 241, 164, 2]),
-						},
-						sharedSecret,
-						Buffer.from(message.message, 'base64')
-					);
-					const decodedMessage = new TextDecoder().decode(decryptedMessage);
-					const [sender, rawMessage] = decodedMessage.split(": ");
+					const decryptedMessage = await decrypt(message.message, new Uint8Array([119, 89, 120, 213, 240, 241, 182, 85, 42, 241, 164, 2]), derivedAesKey);
+					console.log("decryptedMessage", decryptedMessage);
+					const [sender, rawMessage] = decryptedMessage.split(": ");
 					decryptedMessages.push({
 						message: rawMessage,
 						submit_time: message.submit_time,
@@ -198,7 +200,6 @@ export default function LogicPage() {
 					});
 				}
 			}
-			console.log("decryptedMessages", decryptedMessages);
 		}
 		console.log("decryptedMessages", decryptedMessages);
 	}
@@ -208,7 +209,12 @@ export default function LogicPage() {
 		<h1>Chat</h1>
 		<ConnectButton />
 		<h2>1. Your ENS Name: {ensName || "Not set"}</h2>
-		{dankAddress && <h2>2. Your Resolved Dank Chat Address: {dankAddress}</h2>}
+		{dankAddress && (
+			<div className='flex flex-row gap-2'>
+				<h2>2. Your Resolved Dank Chat Address: 0x{dankAddress}</h2>
+				<button onClick={onSetDankAddress}>(Regenerate)</button>
+			</div>
+		)}
 		{!dankAddress && <button onClick={onSetDankAddress}>2. Generate Dank Account & Set Address</button>}
 		<div className='flex flex-row gap-2'>
 			<h2>3.Send Message</h2>

@@ -2,7 +2,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useChat } from '@/lib/ChatContext';
+import { useChat } from '@/providers/ChatContext';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 
