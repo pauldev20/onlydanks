@@ -113,7 +113,8 @@ func (b *Blob) generateAndSubmitBlob() error {
 	log.Info().Bytes("blob", blobBytes).Msg("submitting blob to the chain")
 	err = b.submitBlob(context.Background(), blobBytes)
 	if err != nil {
-		return err
+		log.Error().Err(err).Msg("failed to submit blob")
+		// return err
 	}
 	for _, msg := range msgs {
 		err = b.queries.RemoveBlobSubmission(context.Background(), msg.ID)

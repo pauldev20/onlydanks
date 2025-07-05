@@ -14,7 +14,7 @@ import (
 )
 
 type PostMessageRequest struct {
-	EphemeralPubKey string `json:"ephemeral_pubkey" validate:"required,len=64,hexadecimal"`
+	EphemeralPubKey string `json:"ephemeral_pubkey" validate:"required,hexadecimal"`
 	SearchIndex     string `json:"search_index" validate:"required,hexadecimal"`
 	Message         string `json:"message" validate:"required,base64"`
 }

@@ -1,5 +1,6 @@
 CONTAINER_NAME = devdb
 DB_NAME = intra
+DB_NAME_RAILWAY = railway
 DB_PORT = 5432
 DB_USER = postgres
 DB_PASS = password
@@ -45,13 +46,12 @@ reset: drop create up
 
 reset-dev: 
 	@[ -n "${DEV_DB_URL}" ] || { echo "set DEV_DB_URL"; exit 1; }
-	docker run --rm postgres:17 psql $(DEV_DB_URL)/postgres -c "DO \$$\$$ BEGIN PERFORM pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$(DB_NAME)'; END \$$\$$;"
-	-docker run --rm postgres:17 psql $(DEV_DB_URL)/postgres -c "DROP DATABASE $(DB_NAME)"
-	docker run --rm postgres:17 psql $(DEV_DB_URL)/postgres -c "CREATE DATABASE $(DB_NAME)"
+	docker run --rm postgres:17 psql $(DEV_DB_URL)/postgres -c "DO \$$\$$ BEGIN PERFORM pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$(DB_NAME_RAILWAY)'; END \$$\$$;"
+	-docker run --rm postgres:17 psql $(DEV_DB_URL)/postgres -c "DROP DATABASE $(DB_NAME_RAILWAY)"
+	docker run --rm postgres:17 psql $(DEV_DB_URL)/postgres -c "CREATE DATABASE $(DB_NAME_RAILWAY)"
 	docker run --rm \
 			-v $(PWD)/migration:/migration \
-			migrate/migrate -path=/migration -database $(DEV_DB_URL)/$(DB_NAME)?sslmode=disable up
-	cat fill_dev_database.sql | docker run -i --rm postgres:17 psql $(DEV_DB_URL)/$(DB_NAME)
+			migrate/migrate -path=/migration -database $(DEV_DB_URL)/$(DB_NAME_RAILWAY)?sslmode=disable up
 
 docker:
 	-docker network create devdbnetwork
