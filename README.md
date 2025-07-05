@@ -67,7 +67,6 @@ sequenceDiagram
     Sender->>Sender: Sign and encrypt message
 
     Sender->>Ethereum: Submit blob data:
-
 ```
 1. **Look up ENS subname** → get public key.
 2. **Generate ephemeral private key**.
