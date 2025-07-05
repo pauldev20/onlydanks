@@ -4,6 +4,8 @@ import { Button, LiveFeedback } from '@worldcoin/mini-apps-ui-kit-react';
 import { useMiniKit } from '@worldcoin/minikit-js/minikit-provider';
 import { useCallback, useEffect, useState } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useSession } from "next-auth/react";
+import { redirect } from 'next/navigation';
 
 /**
  * This component is an example of how to authenticate a user
@@ -13,6 +15,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 export const AuthButton = () => {
   const [isPending, setIsPending] = useState(false);
   const { isInstalled } = useMiniKit();
+  const { status } = useSession();
 
   const onClick = useCallback(async () => {
     if (!isInstalled || isPending) {
@@ -46,6 +49,12 @@ export const AuthButton = () => {
 
     authenticate();
   }, [isInstalled, isPending]);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      redirect('/home');
+    }
+  }, [status]);
 
   if (isInstalled) {
 	return (

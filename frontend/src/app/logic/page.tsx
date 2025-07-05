@@ -73,7 +73,7 @@ export default function LogicPage() {
 				args: [namehash(normalize(ensName ?? ""))],
 			}) as [string, string];
 			const dankChatAddress = pubX.slice(2) + pubY.slice(2);
-			console.log(dankChatAddress);
+			console.log("dankChatAddress", dankChatAddress);
 			if (dankChatAddress && dankChatAddress.length === 128) {
 				setDankAddress(dankChatAddress);
 			}
@@ -86,7 +86,7 @@ export default function LogicPage() {
 		const privateKey = key.getPrivate();
 		const publicKeyRaw = `${publicKey.getX().toString("hex")}${publicKey.getY().toString("hex")}`;
 
-		console.log("publicKey", publicKeyRaw);
+		console.log("publicKeyRaw", publicKeyRaw);
 		console.log("privateKey", privateKey.toString("hex"));
 		
 		const privateKeyRaw = privateKey.toString("hex");
@@ -103,7 +103,7 @@ export default function LogicPage() {
 			address: ensResolverAddress as `0x${string}`,
 			abi: ensResolverAbi,
 			functionName: 'setPubkey',
-			args: [namehash(normalize(ensName ?? "")), `0x${Buffer.from(publicKeyRaw.slice(1, 33)).toString('hex')}`, `0x${Buffer.from(publicKeyRaw.slice(33, 65)).toString('hex')}`],
+			args: [namehash(normalize(ensName ?? "")), `0x${publicKey.getX().toString("hex")}`, `0x${publicKey.getY().toString("hex")}`],
 		});
 		setKeyPair(key);
 	};
@@ -124,7 +124,7 @@ export default function LogicPage() {
 		console.log("sharedSecret", sharedSecret.toString("hex"));
 
 		const aesEncryptionKey = await deriveAesKey(sharedSecret.toString("hex"));
-		const { ciphertext } = await encrypt(message, aesEncryptionKey);
+		const { ciphertext } = await encrypt(`${walletClient?.account.address}: ${message}`, aesEncryptionKey);
 
 		console.log("encryptedMessage", btoa(String.fromCharCode(...new Uint8Array(ciphertext))));
 		console.log(Buffer.from(await crypto.subtle.digest('SHA-256', new Uint8Array(Buffer.from(sharedSecret.toString("hex"), 'hex')))).toString('hex'));
@@ -176,7 +176,7 @@ export default function LogicPage() {
 			console.log("sharedSecret", sharedSecret.toString("hex"));
 			const hashedSharedSecret = Buffer.from(await crypto.subtle.digest('SHA-256', new Uint8Array(Buffer.from(sharedSecret.toString("hex"), 'hex')))).toString('hex');
 			console.log("hashedSharedSecret", hashedSharedSecret);
-			const response = await fetch(`https://proto-dankmessaging-production.up.railway.app/messages/${Buffer.from(hashedSharedSecret).toString('hex')}`, {
+			const response = await fetch(`https://proto-dankmessaging-production.up.railway.app/messages/${hashedSharedSecret}`, {
 				method: 'GET',
 				headers: {
 					'Content-Type': 'application/json',
@@ -186,13 +186,17 @@ export default function LogicPage() {
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}
 			const messages = await response.json();
+			console.log("messages", messages);
 			const derivedAesKey = await deriveAesKey(sharedSecret.toString("hex"));
 			if (messages.length > 0) {
 				for (const message of messages) {
 					console.log("message", message);
-					const decryptedMessage = await decrypt(message.message, new Uint8Array([119, 89, 120, 213, 240, 241, 182, 85, 42, 241, 164, 2]), derivedAesKey);
+					const ciphertextArrayBuffer = Uint8Array.from(atob(message.message), c => c.charCodeAt(0)).buffer;
+					const decryptedMessage = await decrypt(ciphertextArrayBuffer, new Uint8Array([119, 89, 120, 213, 240, 241, 182, 85, 42, 241, 164, 2]), derivedAesKey);
 					console.log("decryptedMessage", decryptedMessage);
 					const [sender, rawMessage] = decryptedMessage.split(": ");
+					console.log("sender", sender);
+					console.log("rawMessage", rawMessage);
 					decryptedMessages.push({
 						message: rawMessage,
 						submit_time: message.submit_time,
