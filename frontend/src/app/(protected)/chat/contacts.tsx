@@ -54,10 +54,18 @@ export default function ContactsPage() {
         const last = c.messages[c.messages.length - 1];
         const unread = c.messages.some(m => !m.fromMe && m.unread);
         return (
-            <div className="p-1 px-1" key={c.id}>
+          <div className="px-1 py-1 w-full overflow-hidden" key={c.id}>
+            <div className="w-full max-w-full overflow-hidden">
             <ListItem 
-              description={last?.text}
-              label={c.name.startsWith('0x') ? c.name.slice(0, 6) + '...' + c.name.slice(-4) : c.name}
+              description={
+                last?.text.length > 55
+                ? last.text.slice(0, 52) + '...'
+                : last?.text}
+              label={
+                c.name.startsWith('0x') 
+                ? c.name.slice(0, 6) + '...' + c.name.slice(-4) 
+                : c.name
+              }
               startAdornment={
                 <Image
                   src={`https://effigy.im/a/${c.address.slice(-40)}.svg`}
@@ -81,6 +89,7 @@ export default function ContactsPage() {
               }
             onClick={() => router.push(`/chat/${c.id}`)}
             />
+            </div>
           </div>
         );
       })}
