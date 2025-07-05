@@ -57,6 +57,8 @@ export default function LogicPage() {
 	});
 
 	useEffect(() => {
+		if (!walletClient) return;
+	
 		(async () => {
 			if (!walletClient) return;
 			const ensName = await client.getEnsName({
@@ -78,7 +80,8 @@ export default function LogicPage() {
 				setDankAddress(dankChatAddress);
 			}
 		})();
-	}, [walletClient]);
+	}, [walletClient, client]);
+	
 
 	const onSetDankAddress = async () => {
 		const key = ec.genKeyPair();
