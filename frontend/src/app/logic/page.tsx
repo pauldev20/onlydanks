@@ -4,13 +4,11 @@ import { createPublicClient, http } from 'viem';
 import { sepolia } from 'viem/chains';
 import { normalize, namehash } from 'viem/ens';
 import { useState, useEffect } from 'react';
-import { isAddress } from 'viem'
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { getWalletClient } from '@wagmi/core';
-import { config } from '@/wagmi/config';
 import ensResolverAbi from '@/abi/ENSPublicResolver.json';
 import { useWalletClient } from 'wagmi'
 import { ec as EC } from 'elliptic';
+import { keccak256 } from 'js-sha3';
 
 
 const ec = new EC('secp256k1');
@@ -38,9 +36,34 @@ async function decrypt(ciphertext: ArrayBuffer, iv: Uint8Array, key: CryptoKey):
 	return textDecoder.decode(decrypted);
 }
 
+function recoverPublicKey(message: string, signatureHex: string): string {
+	const ec = new EC('secp256k1');
+	const msgHash = Buffer.from(keccak256(Buffer.from(message)), 'hex');
+  
+	const r = signatureHex.slice(0, 64);
+	const s = signatureHex.slice(64, 128);
+	const v = parseInt(signatureHex.slice(128, 130), 16);
+  
+	const signature = { r, s };
+	const recoveredPub = ec.recoverPubKey(msgHash, signature, v);
+	return ec.keyFromPublic(recoveredPub).getPublic(false, 'hex'); // uncompressed
+}
+
+
+function verifySignature(message: string, signatureHex: string, publicKeyHex: string): boolean {
+	const ec = new EC('secp256k1');
+	const msgHash = Buffer.from(keccak256(Buffer.from(message)), 'hex');
+  
+	const r = signatureHex.slice(0, 64);
+	const s = signatureHex.slice(64, 128);
+	const signature = { r, s };
+  
+	const pubKey = ec.keyFromPublic(publicKeyHex, 'hex');
+	return pubKey.verify(msgHash, signature);
+}
+
 export default function LogicPage() {
 	const [ensName, setEnsName] = useState<string>("");
-	const [walletAddress, setWalletAddress] = useState<string>("0x522F3038F78d91dADA58F8A768be7611134767D5");
 	const [dankAddress, setDankAddress] = useState<string>("");
 
 	const [keyPair, setKeyPair] = useState<EC.KeyPair | null>(null);
@@ -126,8 +149,14 @@ export default function LogicPage() {
 		const sharedSecret = messageKeyPair.derive(importedPublicKey.getPublic());
 		console.log("sharedSecret", sharedSecret.toString("hex"));
 
+		const messageHash = keccak256(Buffer.from(message));
+		const signature = keyPair.sign(messageHash, { canonical: true });
+		const signatureHex = signature.r.toString(16).padStart(64, '0') + signature.s.toString(16).padStart(64, '0') + signature.recoveryParam!.toString(16).padStart(2, '0');
+		console.log("signature", signatureHex);
+		const toEncrypt = `${signatureHex}: ${message}`;
+
 		const aesEncryptionKey = await deriveAesKey(sharedSecret.toString("hex"));
-		const { ciphertext } = await encrypt(`${walletClient?.account.address}: ${message}`, aesEncryptionKey);
+		const { ciphertext } = await encrypt(toEncrypt, aesEncryptionKey);
 
 		console.log("encryptedMessage", btoa(String.fromCharCode(...new Uint8Array(ciphertext))));
 		console.log(Buffer.from(await crypto.subtle.digest('SHA-256', new Uint8Array(Buffer.from(sharedSecret.toString("hex"), 'hex')))).toString('hex'));
@@ -197,18 +226,26 @@ export default function LogicPage() {
 					const ciphertextArrayBuffer = Uint8Array.from(atob(message.message), c => c.charCodeAt(0)).buffer;
 					const decryptedMessage = await decrypt(ciphertextArrayBuffer, new Uint8Array([119, 89, 120, 213, 240, 241, 182, 85, 42, 241, 164, 2]), derivedAesKey);
 					console.log("decryptedMessage", decryptedMessage);
-					const [sender, rawMessage] = decryptedMessage.split(": ");
-					console.log("sender", sender);
+					const [signature, rawMessage] = decryptedMessage.split(": ");
+					console.log("signature", signature);
 					console.log("rawMessage", rawMessage);
+					const recoveredPublicKey = recoverPublicKey(rawMessage, signature);
+					console.log("recoveredPublicKey", recoveredPublicKey);
+					const isSignatureValid = verifySignature(rawMessage, signature, recoveredPublicKey);
+					if (!isSignatureValid) {
+						console.log("Signature is invalid");
+						continue;
+					}
 					decryptedMessages.push({
 						message: rawMessage,
 						submit_time: message.submit_time,
-						sender: sender
+						sender: recoveredPublicKey
 					});
 				}
 			}
 		}
 		console.log("decryptedMessages", decryptedMessages);
+		setLastReceivedMessage(decryptedMessages[decryptedMessages.length - 1].message);
 	}
 
   return (
