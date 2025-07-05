@@ -14,6 +14,7 @@ import { decrypt, deriveAesKey, encrypt, verifySignature, recoverPublicKey } fro
 
 interface Message {
   fromMe: boolean;
+  unread: boolean;
   text: string;
   time: string;
 }
@@ -137,7 +138,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 			newContacts[contactId] = {
 				id: contactId,
 				address: message.sender,
-				messages: [...(newContacts[contactId]?.messages ?? []), { fromMe: false, text: message.message, time: message.submit_time }]
+				messages: [...(newContacts[contactId]?.messages ?? []), { fromMe: false, text: message.message, time: message.submit_time, unread: true }]
 			};
 		}
 		return newContacts;
@@ -156,7 +157,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 	const messageKeyPair = ec.genKeyPair();
 
 	/* -------------------------- Derive Shared Secret -------------------------- */
-	const recipientPublicKey = recipient.startsWith('0x') ? recipient.slice(2) : recipient;
+	const recipientPublicKey = recipient.startsWith('0x') || recipient.startsWith('04') ? recipient.slice(2) : recipient;
+	console.log("recipientPublicKey", recipientPublicKey);
 	const importedPublicKey = ec.keyFromPublic({
 		x: recipientPublicKey.slice(0, 64),
 		y: recipientPublicKey.slice(64, 128)
@@ -200,7 +202,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 		newContacts[contactId] = {
 			id: contactId,
 			address: recipient,
-			messages: [...(prev[contactId]?.messages ?? []), { fromMe: true, text: message, time: new Date().toISOString() }]
+			messages: [...(prev[contactId]?.messages ?? []), { fromMe: true, text: message, time: new Date().toISOString(), unread: false }]
 		};
 		return newContacts;
 	});
