@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react';
 import { keccak256 } from 'js-sha3';
 import { ec as EC } from 'elliptic';
 import { config } from '@/wagmi/config';
-import { getEnsAddress, getEnsName, getEnsText } from '@wagmi/core';
+import { getEnsText } from '@wagmi/core';
 import BN from 'bn.js';
 import { sepolia } from 'viem/chains';
 
@@ -36,6 +36,7 @@ interface ChatContextType {
   sendMessage: (message: string, recipient: string) => Promise<void>;
   startNewChat: (textInput: string) => Promise<number | null>;
   registered: boolean;
+  setRegistered: (registered: boolean) => void;
 }
 
 interface StoredMessage {
@@ -139,7 +140,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       ]);
       setDemoInjected(true);
     }
-		setRegistered(true);
+		// setRegistered(true);
 
 		if (!isConnected || !walletClient || !registered) return;
 		console.log("Wallet connected, fetching contacts...");
@@ -206,6 +207,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 			const derivedAesKey = await deriveAesKey(sharedSecret.toString("hex"));
 			for (const message of messages) {
 				const ciphertextArrayBuffer = Uint8Array.from(atob(message.message), c => c.charCodeAt(0)).buffer;
+				// @todo fix iv
 				const decryptedMessage = await decrypt(ciphertextArrayBuffer, new Uint8Array([119, 89, 120, 213, 240, 241, 182, 85, 42, 241, 164, 2]), derivedAesKey);
 				const [signature, rawMessage] = decryptedMessage.split(": ");
 				const recoveredPublicKey = recoverPublicKey(rawMessage, signature);
@@ -215,15 +217,18 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 					continue;
 				}
 
-				// const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ens/${recoveredPublicKey}`, {
-				// 	method: 'GET',
-				// 	headers: {
-				// 		'Content-Type': 'application/json',
-				// 	},
-				// })
-				// const resolvedName = await response.json();
-				// console.log("resolvedName", resolvedName);
-				const resolvedName = `0x${recoveredPublicKey.slice(-40)}`;
+				const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ens/${recoveredPublicKey}`, {
+					method: 'GET',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+				})
+				let resolvedName = "";
+				if (response.ok) {
+					resolvedName = (await response.json())["subdomain"];
+				} else {
+					resolvedName = `0x${recoveredPublicKey.slice(-40)}`;
+				}
 
 				decryptedMessages.push({ message: rawMessage, submit_time: message.submit_time, sender: recoveredPublicKey, name: resolvedName });
 			}
@@ -456,7 +461,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <ChatContext.Provider value={{ contacts, setContacts, sendMessage, startNewChat, registered }}>
+    <ChatContext.Provider value={{ contacts, setContacts, sendMessage, startNewChat, registered, setRegistered }}>
       {children}
     </ChatContext.Provider>
   );

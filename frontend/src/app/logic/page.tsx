@@ -271,9 +271,10 @@ export default function LogicPage() {
 	const setENSRecord = async () => {
 		if (!walletClient) return;
 		await walletClient.writeContract({
-			address: "0x41Fb196Ae7D65E06880A240c8d1B91245Fb84807" as `0x${string}`,
+			address: process.env.NEXT_PUBLIC_REGISTRY as `0x${string}`,
 			abi: ensRegistryAbi,
 			functionName: 'setText',
+			chain: worldchainSepolia,
 			args: [namehash(normalize("lol123.onlydanks.eth")), "com.dankchat.publicKey", "0xaa9e420a573725371eceaee00b2273dd452dd6277df644716a61c6ab31df45628716af5dbd0149b3832b0b2002580437071801b327a4dc4171aaeee6b49faec7"],
 		});
 	}
