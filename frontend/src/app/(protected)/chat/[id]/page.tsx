@@ -5,6 +5,12 @@ import { useParams } from 'next/navigation';
 import { useChat } from '@/lib/ChatContext';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { Input } from '@worldcoin/mini-apps-ui-kit-react';
+import { Page } from '@/components/PageLayout';
+import { MapsArrowDiagonal, DoubleCheck } from 'iconoir-react';
+
+
+
 
 export default function ChatPage() {
   const { id } = useParams();
@@ -35,7 +41,7 @@ export default function ChatPage() {
       if (c.id !== contactId) return c;
       return {
         ...c,
-        messages: [...c.messages, { fromMe: true, text: input, unread: false }],
+        messages: [...c.messages, { fromMe: true, text: input, unread: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) }],
       };
     });
     setContacts(updated);
@@ -43,36 +49,79 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen">
-      {/* profile */}
-      {selected && (
-      <div className="flex items-center gap-4 px-4 py-3 border-b bg-white shadow-sm">
-        <Image
-            src={selected.avatar}
-            alt={selected.name}
-            width={48}
-            height={48}
-            className="rounded-full object-cover mr-4"
-            />
-        <span className="font-medium text-lg">{selected.name}</span>
-      </div>
-    )}
+    <>
+    <Page.Main className="flex flex-col items-center justify-start mb-16">
+    <div className="flex flex-col h-screen w-full">
+    {/* top bar */}
+    {selected && (
+  <div className="flex items-center gap-3 px-4 py-2 bg-white shadow-sm border-b border-gray-200">
+    {/* back arrow, only show if mobile layout */}
+    {/* <button className="md:hidden">
+      <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
+    </button> */}
+
+    <Image
+      src={selected.avatar}
+      alt={selected.name}
+      width={40}
+      height={40}
+      className="rounded-full object-cover"
+    />
+
+    <div className="flex flex-col">
+      <span className="font-medium text-gray-900">{selected.name}</span>
+      <span className="text-sm text-gray-500">{selected.address}</span>
+    </div>
+
+    <div className="ml-auto flex items-center gap-3">
+      {/* optional icons: call, video, menu */}
+      <Image src="/etherscan.png" alt="call" width={12} height={12} className="w-5 h-5 text-gray-600" />
+      <Image src="/x.png" alt="x.com" width={12} height={12} className="w-5 h-5 text-gray-600" />
+      {/* <DotsVerticalIcon className="w-5 h-5 text-gray-600" /> */}
+    </div>
+  </div>
+)}
+
     {/* messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
+      <div className="flex-1 overflow-y-auto p-2 space-y-2">
         {selected?.messages.map((m, i) => (
           <div
             key={i}
-            className={`max-w-xs px-4 py-2 rounded-lg ${
-              m.fromMe ? 'ml-auto bg-blue-500 text-white' : 'bg-gray-200 text-gray-900'
+            className={`flex ${m.fromMe ? 'justify-end' : 'justify-start'}`}   >
+            <div
+             className={`max-w-[70%] px-4 py-2 rounded-lg break-words ${
+              m.fromMe ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-900'
             }`}
-          >
+            >
             {m.text}
+            <div className="flex justify-end text-xs text-gray-400 mt-1 items-center gap-1">
+              <span> {m.time}</span>
+              {m.fromMe && (
+                <DoubleCheck className="w-4 h-4" />
+              )}
+            </div>
+            </div>
           </div>
         ))}
       </div>
 
       {/* input */}
-      {selected && (
+      {selected && <Input
+      label="Type your message..."
+      endAdornment={
+        <button onClick={handleSend} className="flex items-center">
+        <MapsArrowDiagonal 
+          aria-label="send"
+          className="w-6 h-6"
+        />
+      </button>}
+      value={input}
+      onChange={(e) => setInput(e.target.value)}
+      showEndDivider={true}
+      onKeyDown={(e) => e.key === 'Enter' && handleSend()
+      }
+      />}
+      {/* {selected && (
         <div className="p-4 border-t flex gap-2">
           <input
             type="text"
@@ -89,7 +138,9 @@ export default function ChatPage() {
             Send
           </button>
         </div>
-      )}
+      )} */}
     </div>
+    </Page.Main>
+    </>
   );
 }
