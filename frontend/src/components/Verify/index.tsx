@@ -94,7 +94,7 @@ export const Verify = () => {
           variant="primary"
           className="w-full"
         >
-          Verify (Orb)
+          Break the Orb (Orb)
         </Button>
       </LiveFeedback>
     </div>

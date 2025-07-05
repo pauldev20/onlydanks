@@ -5,6 +5,7 @@ import '@rainbow-me/rainbowkit/styles.css';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
+import { ChatProvider } from '@/lib/ChatContext';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -30,7 +31,9 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} `}>
-        <ClientProviders session={session}>{children}</ClientProviders>
+        <ClientProviders session={session}>
+          <ChatProvider>{children}</ChatProvider>
+          </ClientProviders>
       </body>
     </html>
   );

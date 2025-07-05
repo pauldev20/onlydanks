@@ -1,8 +1,8 @@
 'use client';
 
 import { TabItem, Tabs } from '@worldcoin/mini-apps-ui-kit-react';
-import { Bank, Home, User } from 'iconoir-react';
-import { useState } from 'react';
+import { Bank, Home, User, ChatBubble } from 'iconoir-react';
+import { usePathname, useRouter } from 'next/navigation';
 
 /**
  * This component uses the UI Kit to navigate between pages
@@ -12,12 +12,21 @@ import { useState } from 'react';
  */
 
 export const Navigation = () => {
-  const [value, setValue] = useState('home');
+
+  const pathname = usePathname();
+  const router = useRouter();
+
+  // extract tab from pathname: /chat → chat
+  const currentTab = pathname.split('/')[1] || 'home';
+
+  const handleTabChange = (val: string) => {
+    router.push(`/${val}`);
+  };
 
   return (
-    <Tabs value={value} onValueChange={setValue}>
+    <Tabs value={currentTab} onValueChange={handleTabChange}>
       <TabItem value="home" icon={<Home />} label="Home" />
-      <TabItem value="chat" icon={<Bank />} label="Chat" />
+      <TabItem value="contacts" icon={<ChatBubble />} label="Chat" />
       {/* // TODO: These currently don't link anywhere */}
       <TabItem value="wallet" icon={<Bank />} label="Wallet" />
       <TabItem value="profile" icon={<User />} label="Profile" />

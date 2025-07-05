@@ -45,7 +45,7 @@ reset: drop create up
 
 reset-dev: 
 	@[ -n "${DEV_DB_URL}" ] || { echo "set DEV_DB_URL"; exit 1; }
-	-docker run --rm postgres:17 psql $(DEV_DB_URL)/postgres -c "DO \$$\$$ BEGIN PERFORM pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$(DB_NAME)'; END \$$\$$;"
+	docker run --rm postgres:17 psql $(DEV_DB_URL)/postgres -c "DO \$$\$$ BEGIN PERFORM pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$(DB_NAME)'; END \$$\$$;"
 	-docker run --rm postgres:17 psql $(DEV_DB_URL)/postgres -c "DROP DATABASE $(DB_NAME)"
 	docker run --rm postgres:17 psql $(DEV_DB_URL)/postgres -c "CREATE DATABASE $(DB_NAME)"
 	docker run --rm \

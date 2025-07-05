@@ -10,31 +10,67 @@ import (
 	"time"
 )
 
+const addBlobSubmission = `-- name: AddBlobSubmission :one
+INSERT INTO message.blob_submission (index, message, pubkey) VALUES ($1, $2, $3) 
+ON CONFLICT (index, message, pubkey) DO NOTHING 
+RETURNING id, index, message, pubkey
+`
+
+type AddBlobSubmissionParams struct {
+	Index   []byte
+	Message []byte
+	Pubkey  []byte
+}
+
+// AddBlobSubmission
+//
+//	INSERT INTO message.blob_submission (index, message, pubkey) VALUES ($1, $2, $3)
+//	ON CONFLICT (index, message, pubkey) DO NOTHING
+//	RETURNING id, index, message, pubkey
+func (q *Queries) AddBlobSubmission(ctx context.Context, arg AddBlobSubmissionParams) (MessageBlobSubmission, error) {
+	row := q.db.QueryRow(ctx, addBlobSubmission, arg.Index, arg.Message, arg.Pubkey)
+	var i MessageBlobSubmission
+	err := row.Scan(
+		&i.ID,
+		&i.Index,
+		&i.Message,
+		&i.Pubkey,
+	)
+	return i, err
+}
+
 const addMessage = `-- name: AddMessage :one
-INSERT INTO message.message (index, message, submit_time) VALUES ($1, $2, $3) 
-ON CONFLICT (index, message) DO UPDATE SET submit_time = EXCLUDED.submit_time 
-RETURNING id, index, message, submit_time
+INSERT INTO message.blob (index, message, submit_time, needs_submission) VALUES ($1, $2, $3, $4) 
+ON CONFLICT (index, message) DO UPDATE SET submit_time = EXCLUDED.submit_time, needs_submission = EXCLUDED.needs_submission 
+RETURNING id, index, message, submit_time, needs_submission
 `
 
 type AddMessageParams struct {
-	Index      string
-	Message    string
-	SubmitTime time.Time
+	Index           []byte
+	Message         []byte
+	SubmitTime      time.Time
+	NeedsSubmission bool
 }
 
 // AddMessage
 //
-//	INSERT INTO message.message (index, message, submit_time) VALUES ($1, $2, $3)
-//	ON CONFLICT (index, message) DO UPDATE SET submit_time = EXCLUDED.submit_time
-//	RETURNING id, index, message, submit_time
-func (q *Queries) AddMessage(ctx context.Context, arg AddMessageParams) (MessageMessage, error) {
-	row := q.db.QueryRow(ctx, addMessage, arg.Index, arg.Message, arg.SubmitTime)
-	var i MessageMessage
+//	INSERT INTO message.blob (index, message, submit_time, needs_submission) VALUES ($1, $2, $3, $4)
+//	ON CONFLICT (index, message) DO UPDATE SET submit_time = EXCLUDED.submit_time, needs_submission = EXCLUDED.needs_submission
+//	RETURNING id, index, message, submit_time, needs_submission
+func (q *Queries) AddMessage(ctx context.Context, arg AddMessageParams) (MessageBlob, error) {
+	row := q.db.QueryRow(ctx, addMessage,
+		arg.Index,
+		arg.Message,
+		arg.SubmitTime,
+		arg.NeedsSubmission,
+	)
+	var i MessageBlob
 	err := row.Scan(
 		&i.ID,
 		&i.Index,
 		&i.Message,
 		&i.SubmitTime,
+		&i.NeedsSubmission,
 	)
 	return i, err
 }
@@ -46,7 +82,7 @@ RETURNING pubkey, submit_time
 `
 
 type AddPubkeyParams struct {
-	Pubkey     string
+	Pubkey     []byte
 	SubmitTime time.Time
 }
 
@@ -62,27 +98,74 @@ func (q *Queries) AddPubkey(ctx context.Context, arg AddPubkeyParams) (MessagePu
 	return i, err
 }
 
+const getBlobSubmissions = `-- name: GetBlobSubmissions :many
+SELECT id, index, message, pubkey FROM message.blob_submission
+`
+
+// GetBlobSubmissions
+//
+//	SELECT id, index, message, pubkey FROM message.blob_submission
+func (q *Queries) GetBlobSubmissions(ctx context.Context) ([]MessageBlobSubmission, error) {
+	rows, err := q.db.Query(ctx, getBlobSubmissions)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MessageBlobSubmission
+	for rows.Next() {
+		var i MessageBlobSubmission
+		if err := rows.Scan(
+			&i.ID,
+			&i.Index,
+			&i.Message,
+			&i.Pubkey,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getBlobUpdate = `-- name: GetBlobUpdate :one
+SELECT block_height FROM message.blob_update LIMIT 1
+`
+
+// GetBlobUpdate
+//
+//	SELECT block_height FROM message.blob_update LIMIT 1
+func (q *Queries) GetBlobUpdate(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, getBlobUpdate)
+	var block_height int64
+	err := row.Scan(&block_height)
+	return block_height, err
+}
+
 const getMessagesByIndex = `-- name: GetMessagesByIndex :many
-SELECT id, index, message, submit_time FROM message.message WHERE index = $1
+SELECT id, index, message, submit_time, needs_submission FROM message.blob WHERE index = $1
 `
 
 // GetMessagesByIndex
 //
-//	SELECT id, index, message, submit_time FROM message.message WHERE index = $1
-func (q *Queries) GetMessagesByIndex(ctx context.Context, index string) ([]MessageMessage, error) {
+//	SELECT id, index, message, submit_time, needs_submission FROM message.blob WHERE index = $1
+func (q *Queries) GetMessagesByIndex(ctx context.Context, index []byte) ([]MessageBlob, error) {
 	rows, err := q.db.Query(ctx, getMessagesByIndex, index)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []MessageMessage
+	var items []MessageBlob
 	for rows.Next() {
-		var i MessageMessage
+		var i MessageBlob
 		if err := rows.Scan(
 			&i.ID,
 			&i.Index,
 			&i.Message,
 			&i.SubmitTime,
+			&i.NeedsSubmission,
 		); err != nil {
 			return nil, err
 		}
@@ -119,4 +202,40 @@ func (q *Queries) GetPubkeysSince(ctx context.Context, submitTime time.Time) ([]
 		return nil, err
 	}
 	return items, nil
+}
+
+const removeBlobSubmission = `-- name: RemoveBlobSubmission :exec
+DELETE FROM message.blob_submission WHERE id = $1
+`
+
+// RemoveBlobSubmission
+//
+//	DELETE FROM message.blob_submission WHERE id = $1
+func (q *Queries) RemoveBlobSubmission(ctx context.Context, id int32) error {
+	_, err := q.db.Exec(ctx, removeBlobSubmission, id)
+	return err
+}
+
+const setBlobUpdate = `-- name: SetBlobUpdate :exec
+INSERT INTO message.blob_update (block_height) VALUES ($1)
+`
+
+// SetBlobUpdate
+//
+//	INSERT INTO message.blob_update (block_height) VALUES ($1)
+func (q *Queries) SetBlobUpdate(ctx context.Context, blockHeight int64) error {
+	_, err := q.db.Exec(ctx, setBlobUpdate, blockHeight)
+	return err
+}
+
+const updateBlobUpdate = `-- name: UpdateBlobUpdate :exec
+UPDATE message.blob_update SET block_height = $1
+`
+
+// UpdateBlobUpdate
+//
+//	UPDATE message.blob_update SET block_height = $1
+func (q *Queries) UpdateBlobUpdate(ctx context.Context, blockHeight int64) error {
+	_, err := q.db.Exec(ctx, updateBlobUpdate, blockHeight)
+	return err
 }

@@ -8,14 +8,26 @@ import (
 	"time"
 )
 
-type MessageMessage struct {
-	ID         int32
-	Index      string
-	Message    string
-	SubmitTime time.Time
+type MessageBlob struct {
+	ID              int32
+	Index           []byte
+	Message         []byte
+	SubmitTime      time.Time
+	NeedsSubmission bool
+}
+
+type MessageBlobSubmission struct {
+	ID      int32
+	Index   []byte
+	Message []byte
+	Pubkey  []byte
+}
+
+type MessageBlobUpdate struct {
+	BlockHeight int64
 }
 
 type MessagePubkey struct {
-	Pubkey     string
+	Pubkey     []byte
 	SubmitTime time.Time
 }
