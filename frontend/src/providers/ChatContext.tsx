@@ -45,6 +45,8 @@ interface StoredMessage {
   time: string;
   fromMe: boolean;
   unread: boolean;
+  name?: string;
+  avatar?: string;
 }
 
 const ChatContext = createContext<ChatContextType | null>(null);
@@ -142,6 +144,11 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 		if (!isConnected || !walletClient || !registered) return;
 		console.log("Wallet connected, fetching contacts...");
 		fetchContacts();
+		
+		const interval = setInterval(() => {
+			fetchContacts();
+		}, 10000);
+		return () => clearInterval(interval);
     };
     initalize();
   }, [walletClient, isConnected, status, registered, demoInjected]);
@@ -167,7 +174,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 	const keys = await response.json();
 
 	/* ------------------------------- Check Keys ------------------------------- */
-	const decryptedMessages: { message: string, submit_time: string, sender: string }[] = [];
+	const decryptedMessages: { message: string, submit_time: string, sender: string, name: string }[] = [];
 	for (const key of keys) {
 		/* -------------------------- Derive Shared Secret -------------------------- */
 		let sharedSecret: BN | null = null;
@@ -208,7 +215,17 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 					continue;
 				}
 
-				decryptedMessages.push({ message: rawMessage, submit_time: message.submit_time, sender: recoveredPublicKey });
+				// const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ens/${recoveredPublicKey}`, {
+				// 	method: 'GET',
+				// 	headers: {
+				// 		'Content-Type': 'application/json',
+				// 	},
+				// })
+				// const resolvedName = await response.json();
+				// console.log("resolvedName", resolvedName);
+				const resolvedName = `0x${recoveredPublicKey.slice(-40)}`;
+
+				decryptedMessages.push({ message: rawMessage, submit_time: message.submit_time, sender: recoveredPublicKey, name: resolvedName });
 			}
 		}
 	}
@@ -219,34 +236,6 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 	/* ------------------------------ Add Messages ------------------------------ */
 	setContacts(prev => {
 		const newContacts = [...prev];
-		
-		// Add received messages
-		for (const message of decryptedMessages) {
-			let contactId = newContacts.findIndex(contact => contact.address === message.sender);
-			if (contactId === -1) {
-				contactId = newContacts.length;
-				newContacts.push({
-					id: contactId,
-					name: message.sender,
-          avatar: 'None',
-					address: message.sender,
-					messages: []
-				});
-			}
-
-			const existingMessages = newContacts[contactId]?.messages ?? [];
-			const messageExists = existingMessages.some(existingMsg => existingMsg.time === message.submit_time);
-			
-			if (!messageExists) {
-				newContacts[contactId] = {
-					id: contactId,
-					name: message.sender,
-					avatar: 'None',
-					address: message.sender,
-					messages: [...existingMessages, { fromMe: false, text: message.message, time: message.submit_time, unread: true }]
-				};
-			}
-		}
 
 		// Add sent messages from IndexedDB
 		for (const sentMessage of sentMessages) {
@@ -255,8 +244,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 				contactId = newContacts.length;
 				newContacts.push({
 					id: contactId,
-					avatar: 'None',
-					name: sentMessage.recipient,
+					avatar: sentMessage.avatar || 'None',
+					name: sentMessage.name || `0x${sentMessage.recipient.slice(-40)}`,
 					address: sentMessage.recipient,
 					messages: []
 				});
@@ -268,8 +257,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 			if (!messageExists) {
 				newContacts[contactId] = {
 					id: contactId,
-					name: sentMessage.recipient,
-					avatar: 'None',
+					name: newContacts[contactId].name,
+					avatar: sentMessage.avatar || 'None',
 					address: sentMessage.recipient,
 					messages: [...existingMessages, { 
 						fromMe: sentMessage.fromMe, 
@@ -277,6 +266,34 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 						time: sentMessage.time, 
 						unread: sentMessage.unread 
 					}]
+				};
+			}
+		}
+
+		// Add received messages
+		for (const message of decryptedMessages) {
+			let contactId = newContacts.findIndex(contact => contact.address === message.sender);
+			if (contactId === -1) {
+				contactId = newContacts.length;
+				newContacts.push({
+					id: contactId,
+					name: message.name,
+          			avatar: 'None',
+					address: message.sender,
+					messages: []
+				});
+			}
+
+			const existingMessages = newContacts[contactId]?.messages ?? [];
+			const messageExists = existingMessages.some(existingMsg => existingMsg.time === message.submit_time);
+			
+			if (!messageExists) {
+				newContacts[contactId] = {
+					id: contactId,
+					name: newContacts[contactId].name,
+					avatar: 'None',
+					address: message.sender,
+					messages: [...existingMessages, { fromMe: false, text: message.message, time: message.submit_time, unread: true }]
 				};
 			}
 		}
@@ -306,6 +323,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 	} else {
 		address = textInput;
 	}
+	address = address.startsWith('0x') ? `04${address.slice(2)}` : address;
 
 	const existing = contacts.find(c => c.address.toLowerCase() === address.toLowerCase());
 	if (existing) return existing.id;
@@ -338,7 +356,33 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 	const messageKeyPair = ec.genKeyPair();
 
 	/* -------------------------- Derive Shared Secret -------------------------- */
-	const recipientPublicKey = recipient.startsWith('0x') || recipient.startsWith('04') ? recipient.slice(2) : recipient;
+	let recipientPublicKey = "";
+	let recipientName = "";
+	let recipientAddress = "";
+	if (!recipient.startsWith('0x') && !recipient.startsWith('04')) {
+		const resolvedAddress = await getEnsText(config, {
+			key: "com.dankchat.publicKey",
+			chainId: sepolia.id,
+			name: recipient,
+		}) as string;
+		console.log("resolvedAddress", resolvedAddress);
+		if (resolvedAddress) {
+			if (resolvedAddress.startsWith('0x')) {
+				recipientPublicKey = resolvedAddress.slice(2);
+				recipientAddress = `04${resolvedAddress.slice(2)}`;
+			} else {
+				recipientPublicKey = resolvedAddress;
+				recipientAddress = `04${resolvedAddress}`;
+			}
+			recipientName = recipient; // Use ENS name if available
+		} else {
+			return;
+		}
+	} else {
+		recipientPublicKey = recipient.slice(2);
+		recipientAddress = recipient;
+		recipientName = `0x${recipient.slice(-40)}`;
+	}
 	console.log("recipientPublicKey", recipientPublicKey);
 	const importedPublicKey = ec.keyFromPublic({
 		x: recipientPublicKey.slice(0, 64),
@@ -378,17 +422,19 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 	/* ------------------------ Save Message to IndexedDB ----------------------- */
 	try {
 		await saveSentMessage({
-			recipient: recipient,
+			recipient: recipientAddress, // Save the resolved address, not the ENS name
 			message: message,
 			time: messageTime,
 			fromMe: true,
-			unread: false
+			unread: false,
+			name: recipientName,
+			avatar: 'None'
 		});
 	} catch (error) {
 		console.error("Failed to save message to IndexedDB:", error);
 	}
 
-	let contactId = contacts.findIndex(contact => contact.address === recipient);
+	let contactId = contacts.findIndex(contact => contact.address === recipientAddress);
 	if (contactId === -1) {
 		contactId = contacts.length;
 	}
@@ -398,9 +444,9 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 		const newContacts = [...prev];
 		newContacts[contactId] = {
 			id: contactId,
-			name: recipient,
+			name: recipientName,
 			avatar: 'None',
-			address: recipient,
+			address: recipientAddress,
 			messages: [...(prev[contactId]?.messages ?? []), { fromMe: true, text: message, time: messageTime, unread: false }]
 		};
 		return newContacts;
