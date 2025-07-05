@@ -39,7 +39,7 @@ export default function ChatPage() {
 
   const handleSend = () => {
     if (!selected || input.trim() === '') return;
-    sendMessage(input, selected.address);
+    sendMessage(input, !selected.name.startsWith('0x') ? selected.name : selected.address);
     setInput('');
   };
 

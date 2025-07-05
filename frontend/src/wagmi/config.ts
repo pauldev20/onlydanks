@@ -1,4 +1,4 @@
-import { mainnet, sepolia, worldchainSepolia } from 'wagmi/chains'
+import { sepolia, worldchainSepolia } from 'wagmi/chains';
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
 import { siteConfig } from '@/siteConfig';
 import { publicActions } from 'viem';
