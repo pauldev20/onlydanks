@@ -103,7 +103,7 @@ export default function ChatPage() {
       {/* input */}
       {selected && <Input
 		label="Type your message..."
-		className="mb-22"
+		className="mb-22 w-auto mx-2"
 		endAdornment={
 			<button onClick={handleSend} className="flex items-center">
 			<MapsArrowDiagonal 

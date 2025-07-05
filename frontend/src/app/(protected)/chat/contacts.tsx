@@ -33,8 +33,7 @@ export default function ContactsPage() {
         const last = c.messages[c.messages.length - 1];
         const unread = c.messages.some(m => !m.fromMe && m.unread);
         return (
-          <>  
-            <div className="p-1 px-1">
+            <div className="p-1 px-1" key={c.id}>
             <ListItem 
               description={last?.text}
               label={"lol"}
@@ -62,7 +61,6 @@ export default function ContactsPage() {
             onClick={() => router.push(`/chat/${c.id}`)}
             />
           </div>
-          </>
         );
       })}
     </div>
