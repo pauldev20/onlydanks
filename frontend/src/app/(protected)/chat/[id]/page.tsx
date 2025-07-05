@@ -6,7 +6,7 @@ import { useChat } from '@/providers/ChatContext';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Input } from '@worldcoin/mini-apps-ui-kit-react';
-import { Page } from '@/components/PageLayout';
+
 import { MapsArrowDiagonal, DoubleCheck, ArrowLeft } from 'iconoir-react';
 import { useRouter } from 'next/navigation';
 
@@ -52,7 +52,7 @@ export default function ChatPage() {
 
   return (
     <>
-    <Page.Main className="flex flex-col items-center justify-start mb-16">
+
     <div className="flex flex-col h-screen w-full">
     {/* top bar */}
     {selected && (
@@ -124,7 +124,7 @@ export default function ChatPage() {
       }
       />}
     </div>
-    </Page.Main>
+
     </>
   );
 }
