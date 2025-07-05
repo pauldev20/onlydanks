@@ -8,8 +8,10 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"proto-dankmessaging/backend/dependencies/queries/dbgen"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
 	"github.com/rs/zerolog/log"
@@ -31,8 +33,9 @@ func (b *Blob) updateBlob() error {
 	defer resp.Body.Close()
 	var blobList struct {
 		Blobs []struct {
-			BlockNumber           uint64 `json:"blockNumber"`
-			VersionedHash         string `json:"versionedHash"`
+			BlockNumber           uint64    `json:"blockNumber"`
+			BlockTimestamp        time.Time `json:"blockTimestamp"`
+			VersionedHash         string    `json:"versionedHash"`
 			DataStorageReferences []struct {
 				Storage string `json:"storage"`
 				URL     string `json:"url"`
@@ -59,10 +62,9 @@ func (b *Blob) updateBlob() error {
 			}
 		}
 		if rawBlobData == nil {
-			log.Debug().Str("versioned_hash", blob.VersionedHash).Msg("no google blob found, trying without google")
 			rawBlobData, err = b.downloadBlobWithoutGoogle(blob.VersionedHash)
 			if err != nil {
-				log.Error().Err(err).Msg("failed to download blob without google")
+				// log.Error().Err(err).Msg("failed to download blob without google")
 				continue
 			}
 		}
@@ -87,7 +89,7 @@ func (b *Blob) updateBlob() error {
 			log.Error().Err(err).Msg("failed to unmarshal blob")
 			continue
 		}
-		err = b.addBlobToDB(&blobContent)
+		err = b.addBlobToDB(&blobContent, blob.BlockTimestamp)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to add blob to db")
 			continue
@@ -135,12 +137,21 @@ func (b *Blob) downloadBlobWithoutGoogle(id string) ([]byte, error) {
 	return hexBlobData, nil
 }
 
-func (b *Blob) addBlobToDB(blobContent *BlobContent) error {
-	log.Info().Interface("key", blobContent.Messages[0].EphemeralPubkey).Msg("adding blob to db")
-	// blob, err := b.encodeDataToBlob(blobContent)
-	// if err != nil {
-	// 	return errors.New("failed to encode data to blob: " + err.Error())
-	// }
-
+func (b *Blob) addBlobToDB(blobContent *BlobContent, submitTime time.Time) error {
+	for _, message := range blobContent.Messages {
+		_, err := b.queries.AddMessage(
+			context.Background(),
+			dbgen.AddMessageParams{
+				Index:           message.SearchIndex,
+				Message:         message.Message,
+				SubmitTime:      submitTime,
+				NeedsSubmission: false,
+			},
+		)
+		if err != nil {
+			return errors.New("failed to add message to db: " + err.Error())
+		}
+		log.Info().Interface("message", message).Msg("added message to db")
+	}
 	return nil
 }

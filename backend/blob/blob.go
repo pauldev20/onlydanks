@@ -69,7 +69,8 @@ func (b *Blob) Start(ctx context.Context) error {
 	submitterTicker := time.NewTicker(1 * time.Second)
 	var updateTicker *time.Ticker
 	if b.dep.Config.BlobUpdate {
-		updateTicker = time.NewTicker(5 * time.Second)
+		updateTicker = time.NewTicker(20 * time.Second)
+		b.updateBlob()
 	} else {
 		updateTicker = time.NewTicker(time.Duration(math.MaxInt64))
 	}
