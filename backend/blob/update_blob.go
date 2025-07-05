@@ -78,7 +78,6 @@ func (b *Blob) updateBlob() error {
 			continue
 		}
 		if !bytes.Equal(blobData[:len(blobMsgMagicBytes)], blobMsgMagicBytes) {
-			log.Debug().Bytes("blob_data_first_bytes", blobData[:10]).Msg("blob data has no magic bytes")
 			continue
 		}
 		log.Info().Bytes("blob_data_first_bytes", blobData[:10]).Msg("blob data has magic bytes")
@@ -129,7 +128,6 @@ func (b *Blob) downloadBlobWithoutGoogle(id string) ([]byte, error) {
 	if err != nil {
 		return nil, errors.New("failed to decode blob data: " + err.Error())
 	}
-	log.Info().Bytes("blob_data_first_bytes", hexBlobData[:100]).Msg("blob data first 4 bytes")
 	return hexBlobData, nil
 }
 
