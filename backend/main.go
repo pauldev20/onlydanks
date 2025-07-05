@@ -26,7 +26,10 @@ func main() {
 	wg := sync.WaitGroup{}
 	ctx, cancel := context.WithCancel(context.Background())
 
-	b := blob.NewBlob(dep)
+	b, err := blob.NewBlob(dep)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create blob")
+	}
 	startBlob(ctx, b, &wg)
 
 	api := api.NewAPI(dep)

@@ -40,6 +40,9 @@ type Config struct {
 	LogLevel    LogLevel    `koanf:"log_level"    validate:"required,oneof=trace debug info warn error fatal panic"`
 	LogType     LogType     `koanf:"log_type"     validate:"required,oneof=structured plain"`
 	Port        int         `koanf:"port"     validate:"required"`
+	PrivateKey  string      `koanf:"private_key" validate:"required"`
+	RpcUrl      string      `koanf:"rpc_url" validate:"required"`
+	ChainId     uint64      `koanf:"chain_id" validate:"required"`
 
 	Database string `koanf:"database"                validate:"required,url"`
 }
