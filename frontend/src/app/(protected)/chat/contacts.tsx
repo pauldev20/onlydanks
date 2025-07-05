@@ -39,8 +39,8 @@ export default function ContactsPage() {
               label={c.name}
               startAdornment={
                 <Image
-                  src={c.avatar}
-                  alt={c.name}
+                  src={`https://effigy.im/a/${c.address.slice(0, 40)}.svg`}
+                  alt={c.address}
                   width={48}
                   height={48}
                   className="rounded-full object-cover mr-4"
