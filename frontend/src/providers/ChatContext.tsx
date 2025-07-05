@@ -6,9 +6,13 @@ import { useAccount, useWalletClient } from 'wagmi';
 import { useSession } from 'next-auth/react';
 import { keccak256 } from 'js-sha3';
 import { ec as EC } from 'elliptic';
+import { config } from '@/wagmi/config';
+import { getEnsAddress, getEnsName, getEnsText } from '@wagmi/core';
 import BN from 'bn.js';
+import { sepolia } from 'viem/chains';
 
 import { decrypt, deriveAesKey, encrypt, verifySignature, recoverPublicKey } from '@/helpers/crypto';
+import { normalize } from 'path';
 
 
 interface Message {
@@ -28,13 +32,69 @@ interface ChatContextType {
   contacts: Contact[];
   setContacts: (contacts: Contact[]) => void;
   sendMessage: (message: string, recipient: string) => Promise<void>;
-  startNewChat: (ensName: string) => Promise<number | null>;
+  startNewChat: (textInput: string) => Promise<number | null>;
   registered: boolean;
+}
+
+interface StoredMessage {
+  id?: number;
+  recipient: string;
+  message: string;
+  time: string;
+  fromMe: boolean;
+  unread: boolean;
 }
 
 const ChatContext = createContext<ChatContextType | null>(null);
 
 const ec = new EC('secp256k1');
+
+/* ----------------------------- IndexedDB Helpers ----------------------------- */
+const DB_NAME = 'dankchat';
+const DB_VERSION = 1;
+const STORE_NAME = 'messages';
+
+const initDB = (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+    
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+        store.createIndex('recipient', 'recipient', { unique: false });
+        store.createIndex('time', 'time', { unique: false });
+      }
+    };
+  });
+};
+
+const saveSentMessage = async (messageData: StoredMessage): Promise<void> => {
+  const db = await initDB();
+  const transaction = db.transaction([STORE_NAME], 'readwrite');
+  const store = transaction.objectStore(STORE_NAME);
+  
+  return new Promise((resolve, reject) => {
+    const request = store.add(messageData);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve();
+  });
+};
+
+const getSentMessages = async (): Promise<StoredMessage[]> => {
+  const db = await initDB();
+  const transaction = db.transaction([STORE_NAME], 'readonly');
+  const store = transaction.objectStore(STORE_NAME);
+  
+  return new Promise((resolve, reject) => {
+    const request = store.getAll();
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+  });
+};
 
 export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -122,9 +182,14 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 		}
 	}
 
+	/* -------------------------- Load Sent Messages ---------------------------- */
+	const sentMessages = await getSentMessages();
+
 	/* ------------------------------ Add Messages ------------------------------ */
 	setContacts(prev => {
 		const newContacts = [...prev];
+		
+		// Add received messages
 		for (const message of decryptedMessages) {
 			let contactId = newContacts.findIndex(contact => contact.address === message.sender);
 			if (contactId === -1) {
@@ -135,35 +200,80 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 					messages: []
 				});
 			}
-			newContacts[contactId] = {
-				id: contactId,
-				address: message.sender,
-				messages: [...(newContacts[contactId]?.messages ?? []), { fromMe: false, text: message.message, time: message.submit_time, unread: true }]
-			};
+
+			const existingMessages = newContacts[contactId]?.messages ?? [];
+			const messageExists = existingMessages.some(existingMsg => existingMsg.time === message.submit_time);
+			
+			if (!messageExists) {
+				newContacts[contactId] = {
+					id: contactId,
+					address: message.sender,
+					messages: [...existingMessages, { fromMe: false, text: message.message, time: message.submit_time, unread: true }]
+				};
+			}
 		}
+
+		// Add sent messages from IndexedDB
+		for (const sentMessage of sentMessages) {
+			let contactId = newContacts.findIndex(contact => contact.address === sentMessage.recipient);
+			if (contactId === -1) {
+				contactId = newContacts.length;
+				newContacts.push({
+					id: contactId,
+					address: sentMessage.recipient,
+					messages: []
+				});
+			}
+
+			const existingMessages = newContacts[contactId]?.messages ?? [];
+			const messageExists = existingMessages.some(existingMsg => existingMsg.time === sentMessage.time);
+			
+			if (!messageExists) {
+				newContacts[contactId] = {
+					id: contactId,
+					address: sentMessage.recipient,
+					messages: [...existingMessages, { 
+						fromMe: sentMessage.fromMe, 
+						text: sentMessage.message, 
+						time: sentMessage.time, 
+						unread: sentMessage.unread 
+					}]
+				};
+			}
+		}
+
+		// Sort messages by time for each contact
+		newContacts.forEach(contact => {
+			contact.messages.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+		});
+
 		return newContacts;
 	});
-  }
+}
 
- const startNewChat = async (ensName: string): Promise<number | null> => {
-  // check if it's already in contacts
-  const normalized = ensName.trim().toLowerCase();
-
-
-  const existing = contacts.find(c => c.address.toLowerCase() === normalized);
-  if (existing) return existing.id;
+ const startNewChat = async (textInput: string): Promise<number | null> => {
+  const normalized = normalize(textInput);
 
   try {
-    // resolve ENS to address (you could replace this with a public key fetch if you store pubkeys separately)
-    // const res = await fetch(`https://sepolia-ens.wtf/resolve/${ensName}`); // replace with your ENS resolver
-    // const json = await res.json();
-    // const resolved = json.address;
+	let address = "";
+	if (!textInput.startsWith('0x')) {
+		address = await getEnsText(config, {
+			key: "com.dankchat.publicKey",
+			name: normalize(normalized),
+			chainId: sepolia.id
+		}) as string;
+		console.log("address", address);
+		if (!address || !address.startsWith('0x')) return null;
+	} else {
+		address = textInput;
+	}
 
-    // if (!resolved || !resolved.startsWith('0x')) return null;
+	const existing = contacts.find(c => c.address.toLowerCase() === address.toLowerCase());
+	if (existing) return existing.id;
 
     const newContact = {
       id: contacts.length,
-      address: normalized,
+      address: address,
       messages: [],
     };
 
@@ -221,11 +331,26 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 		throw new Error(`HTTP error! status: ${response.status}`);
 	}
 	console.log("Message sent successfully:", response);
+	
+	const messageTime = new Date().toISOString();
+	
+	/* ------------------------ Save Message to IndexedDB ----------------------- */
+	try {
+		await saveSentMessage({
+			recipient: recipient,
+			message: message,
+			time: messageTime,
+			fromMe: true,
+			unread: false
+		});
+	} catch (error) {
+		console.error("Failed to save message to IndexedDB:", error);
+	}
+
 	let contactId = contacts.findIndex(contact => contact.address === recipient);
 	if (contactId === -1) {
 		contactId = contacts.length;
 	}
-
 
 	/* ------------------------------- Add Message ------------------------------ */
 	setContacts(prev => {
@@ -233,10 +358,12 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 		newContacts[contactId] = {
 			id: contactId,
 			address: recipient,
-			messages: [...(prev[contactId]?.messages ?? []), { fromMe: true, text: message, time: new Date().toISOString(), unread: false }]
+			messages: [...(prev[contactId]?.messages ?? []), { fromMe: true, text: message, time: messageTime, unread: false }]
 		};
 		return newContacts;
 	});
+
+	
   };
 
   return (
