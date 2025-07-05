@@ -36,5 +36,11 @@ func (a *API) GetENS(ctx *fiber.Ctx) error {
 		}
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{"subdomain": subdomain})
+	var resp struct {
+		Subdomain string `json:"subdomain"`
+		Address   string `json:"address"`
+	}
+	resp.Subdomain = subdomain.Subdomain
+	resp.Address = subdomain.Address
+	return ctx.Status(fiber.StatusOK).JSON(resp)
 }
