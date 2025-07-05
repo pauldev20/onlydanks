@@ -2,7 +2,6 @@ package blob
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"io"
 	"math/big"
@@ -50,10 +49,9 @@ func NewBlob(dep *dependencies.Dependencies) (*Blob, error) {
 	queries := dbgen.New(dep.DB.Pool())
 	blockHeight, err := queries.GetBlobUpdate(context.Background())
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			queries.SetBlobUpdate(context.Background(), 8695755)
-		} else {
-			return nil, errors.New("failed to get blob update: " + err.Error())
+		err = queries.SetBlobUpdate(context.Background(), 8695755)
+		if err != nil {
+			return nil, errors.New("failed to set blob update: " + err.Error())
 		}
 	}
 	return &Blob{
