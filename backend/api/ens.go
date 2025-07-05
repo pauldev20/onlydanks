@@ -1,6 +1,8 @@
 package api
 
 import (
+	"database/sql"
+	"errors"
 	"proto-dankmessaging/backend/dependencies/queries/dbgen"
 
 	"github.com/gofiber/fiber/v2"
@@ -29,6 +31,9 @@ func (a *API) GetENS(ctx *fiber.Ctx) error {
 	address := ctx.Params("address")
 	subdomain, err := a.queries.GetENSSubdomainByAddress(ctx.Context(), address)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "ENS subdomain not found"})
+		}
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{"subdomain": subdomain})
