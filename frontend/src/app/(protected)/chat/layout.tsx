@@ -3,15 +3,16 @@
 
 import { ReactNode, useEffect } from 'react';
 import ContactsPage from './contacts'; // import directly
-import clsx from 'clsx';
 import { Page } from '@/components/PageLayout';
 import { TopBar } from '@worldcoin/mini-apps-ui-kit-react';
 import Image from 'next/image';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAccount } from 'wagmi';
+import clsx from 'clsx';
 
 export default function ChatLayout({ children }: { children: ReactNode }) {
+    const pathname = usePathname();
     const router = useRouter();
     const { isDisconnected } = useAccount();
 
@@ -20,6 +21,9 @@ export default function ChatLayout({ children }: { children: ReactNode }) {
         router.push('/');
     }
     }, [isDisconnected, router]);
+
+    const isChatPage = pathname?.match(/^\/chat\/\d+$/); // matches /chat/0, /chat/1 etc
+
 
   return (
     <>
@@ -44,12 +48,17 @@ export default function ChatLayout({ children }: { children: ReactNode }) {
         />
       </Page.Header>
     <div className="flex h-screen overflow-hidden">
-      <div className="basis-full sm:basis-1/3 shrink-0 border-r border-gray-200">
-        <ContactsPage />
-      </div>
-      <div className={clsx('flex-1 md:block w-2/3')}>
-        {children}
-      </div>
+        {(!isChatPage || typeof window === 'undefined' || window.innerWidth >= 640) && (
+          <div className="basis-full sm:basis-1/3 shrink-0 border-r border-gray-200">
+            <ContactsPage />
+          </div>
+        )}
+      <div className={clsx(
+          'flex-1',
+          isChatPage ? 'block' : 'hidden sm:block'
+        )}>
+          {children}
+        </div>
     </div>
     </>
   );

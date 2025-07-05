@@ -57,7 +57,7 @@ export default function ContactsPage() {
             <div className="p-1 px-1" key={c.id}>
             <ListItem 
               description={last?.text}
-              label={c.name}
+              label={c.name.startsWith('0x') ? c.name.slice(0, 6) + '...' + c.name.slice(-4) : c.name}
               startAdornment={
                 <Image
                   src={`https://effigy.im/a/${c.address.slice(-40)}.svg`}
