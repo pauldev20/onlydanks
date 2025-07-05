@@ -7,12 +7,14 @@ interface Message {
   fromMe: boolean;
   text: string;
   unread: boolean;
+  time: string;
 }
 
 interface Contact {
   id: number;
   name: string;
   avatar: string;
+  address: string;
   messages: Message[];
 }
 
@@ -22,12 +24,15 @@ interface ChatContextType {
 }
 
 const initialData = [
-  { id: 1, name: 'Alice',
+  { id: 1, 
+    name: 'Patrick',
     avatar: '/avatar.png',
-     messages: [ { fromMe: false, text: 'hi there', unread: false }, { fromMe: true, text: 'hey!', unread: false } ] },
-  { id: 2, name: 'Bob',
+    address: '0x1234567890',
+    messages: [ { fromMe: false, text: 'hi there', unread: false, time: '12:00' }, { fromMe: true, text: 'hey!', unread: false, time: '12:01' } ] },
+  { id: 2, name: 'Paul',
     avatar: '/avatar.png', 
-    messages: [ { fromMe: false, text: 'yo', unread: true } ] },
+    address: '0x1234567890',
+    messages: [ { fromMe: false, text: 'yo', unread: true, time: '12:02' } ] },
 ];
 
 const ChatContext = createContext<ChatContextType | null>(null);

@@ -4,39 +4,63 @@
 import { useChat } from '@/providers/ChatContext';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { ListItem } from '@worldcoin/mini-apps-ui-kit-react';
+import { useMemo } from 'react';
 
 export default function ContactsPage() {
   const { contacts } = useChat();
   const router = useRouter();
 
+  const sortedContacts = useMemo(() => {
+    return [...contacts].sort((a, b) => {
+      const aUnread = a.messages.some((m) => !m.fromMe && m.unread);
+      const bUnread = b.messages.some((m) => !m.fromMe && m.unread);
+  
+      if (aUnread && !bUnread) return -1;
+      if (!aUnread && bUnread) return 1;
+  
+      // fallback: sort by message index (most recent activity)
+      return b.messages.length - a.messages.length;
+    });
+  }, [contacts]);
+
+  
   return (
     <div className="h-screen overflow-y-auto">
-      {contacts.map(c => {
+      {sortedContacts.map(c => {
         const last = c.messages[c.messages.length - 1];
         const unread = c.messages.some(m => !m.fromMe && m.unread);
         return (
-          <div
-            key={c.id}
+          <>  
+            <div className="p-1 px-1">
+            <ListItem 
+              description={last?.text}
+              label={c.name}
+              startAdornment={
+                <Image
+                  src={c.avatar}
+                  alt={c.name}
+                  width={48}
+                  height={48}
+                  className="rounded-full object-cover mr-4"
+                />
+              }
+              endAdornment={
+                <div className="flex flex-col items-end gap-1">
+                {unread && (
+                  <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">
+                    new
+                  </span>
+                )}
+                <span className=" text-xs text-gray-400 ">
+                  {last?.time}
+                </span>
+              </div>
+              }
             onClick={() => router.push(`/chat/${c.id}`)}
-            className="p-3 px-5 flex gap-4 items-center border-b cursor-pointer hover:bg-gray-50"
-          >
-            <Image
-            src={c.avatar}
-            alt={c.name}
-            width={48}
-            height={48}
-            className="rounded-full object-cover mr-4"
             />
-          <div className="flex-1">
-            <div className="flex justify-between items-center">
-              <span className="font-semibold text-[16px]">{c.name}</span>
-              {unread && (
-                <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">new</span>
-              )}
-            </div>
-            <div className="text-sm text-gray-600 truncate">{last?.text}</div>
           </div>
-          </div>
+          </>
         );
       })}
     </div>
