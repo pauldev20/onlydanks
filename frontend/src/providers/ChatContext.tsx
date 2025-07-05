@@ -121,7 +121,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
             address: '0xdemo000000000000000000000000000000000000000000000000000000000001',
             messages: [
               { fromMe: false, unread: false, text: 'gm fren', time: new Date().toISOString() },
-              { fromMe: true, unread: false, text: 'gm sir, we agreed on $1k to buy a finalist spot. Want it to your main wallet?', time: new Date().toISOString() },
+              { fromMe: true, unread: false, text: 'gm sir, we agreed on $1k to buy a finalist spot. Want it to your main wallet?', time: '' },
             ]
           },
           {
@@ -131,7 +131,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
             address: '0xdemo000000000000000000000000000000000000000000000000000000000002',
             messages: [
               { fromMe: true, unread: false, text: 'yo what’s up', time: new Date().toISOString() },
-              { fromMe: false, unread: false, text: 'yo bro, finally using OnlyDank. Super glad to sext anonymously with you', time: new Date().toISOString() }
+              { fromMe: false, unread: false, text: 'yo bro, finally using OnlyDank. Super glad to sext anonymously with you', time: '' }
             ]
         }
       ]);
