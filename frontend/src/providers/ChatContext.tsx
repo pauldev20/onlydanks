@@ -232,39 +232,10 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 
 	/* -------------------------- Load Sent Messages ---------------------------- */
 	const sentMessages = await getSentMessages();
-	console.log("sentMessages", sentMessages);
 
 	/* ------------------------------ Add Messages ------------------------------ */
 	setContacts(prev => {
 		const newContacts = [...prev];
-		
-		// Add received messages
-		for (const message of decryptedMessages) {
-			let contactId = newContacts.findIndex(contact => contact.address === message.sender);
-			if (contactId === -1) {
-				contactId = newContacts.length;
-				newContacts.push({
-					id: contactId,
-					name: message.name,
-          			avatar: 'None',
-					address: message.sender,
-					messages: []
-				});
-			}
-
-			const existingMessages = newContacts[contactId]?.messages ?? [];
-			const messageExists = existingMessages.some(existingMsg => existingMsg.time === message.submit_time);
-			
-			if (!messageExists) {
-				newContacts[contactId] = {
-					id: contactId,
-					name: message.name,
-					avatar: 'None',
-					address: message.sender,
-					messages: [...existingMessages, { fromMe: false, text: message.message, time: message.submit_time, unread: true }]
-				};
-			}
-		}
 
 		// Add sent messages from IndexedDB
 		for (const sentMessage of sentMessages) {
@@ -286,7 +257,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 			if (!messageExists) {
 				newContacts[contactId] = {
 					id: contactId,
-					name: sentMessage.name || `0x${sentMessage.recipient.slice(-40)}`,
+					name: newContacts[contactId].name,
 					avatar: sentMessage.avatar || 'None',
 					address: sentMessage.recipient,
 					messages: [...existingMessages, { 
@@ -295,6 +266,34 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 						time: sentMessage.time, 
 						unread: sentMessage.unread 
 					}]
+				};
+			}
+		}
+
+		// Add received messages
+		for (const message of decryptedMessages) {
+			let contactId = newContacts.findIndex(contact => contact.address === message.sender);
+			if (contactId === -1) {
+				contactId = newContacts.length;
+				newContacts.push({
+					id: contactId,
+					name: message.name,
+          			avatar: 'None',
+					address: message.sender,
+					messages: []
+				});
+			}
+
+			const existingMessages = newContacts[contactId]?.messages ?? [];
+			const messageExists = existingMessages.some(existingMsg => existingMsg.time === message.submit_time);
+			
+			if (!messageExists) {
+				newContacts[contactId] = {
+					id: contactId,
+					name: newContacts[contactId].name,
+					avatar: 'None',
+					address: message.sender,
+					messages: [...existingMessages, { fromMe: false, text: message.message, time: message.submit_time, unread: true }]
 				};
 			}
 		}
@@ -324,6 +323,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 	} else {
 		address = textInput;
 	}
+	address = address.startsWith('0x') ? `04${address.slice(2)}` : address;
 
 	const existing = contacts.find(c => c.address.toLowerCase() === address.toLowerCase());
 	if (existing) return existing.id;
@@ -365,13 +365,14 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 			chainId: sepolia.id,
 			name: recipient,
 		}) as string;
+		console.log("resolvedAddress", resolvedAddress);
 		if (resolvedAddress) {
 			if (resolvedAddress.startsWith('0x')) {
 				recipientPublicKey = resolvedAddress.slice(2);
-				recipientAddress = resolvedAddress;
+				recipientAddress = `04${resolvedAddress.slice(2)}`;
 			} else {
 				recipientPublicKey = resolvedAddress;
-				recipientAddress = `0x${resolvedAddress}`;
+				recipientAddress = `04${resolvedAddress}`;
 			}
 			recipientName = recipient; // Use ENS name if available
 		} else {
