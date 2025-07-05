@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"proto-dankmessaging/backend/dependencies/queries/dbgen"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
@@ -118,9 +117,6 @@ func (b *Blob) downloadBlob(url string) ([]byte, error) {
 }
 
 func (b *Blob) downloadBlobWithoutGoogle(id string) ([]byte, error) {
-	if !strings.HasPrefix(id, "0x01afa44138089bc464a1c3dac1bc56230c90bb3ddea0f2c92f5534df9434af96") {
-		return nil, errors.New("invalid id: " + id)
-	}
 	dataUrl := "https://api.sepolia.blobscan.com/blobs/" + id + "/data"
 	resp, err := http.Get(dataUrl)
 	if err != nil {
