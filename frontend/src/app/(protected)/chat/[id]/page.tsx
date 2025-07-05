@@ -7,7 +7,8 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Input } from '@worldcoin/mini-apps-ui-kit-react';
 import { Page } from '@/components/PageLayout';
-import { MapsArrowDiagonal, DoubleCheck } from 'iconoir-react';
+import { MapsArrowDiagonal, DoubleCheck, ArrowLeft } from 'iconoir-react';
+import { useRouter } from 'next/navigation';
 
 
 
@@ -16,7 +17,8 @@ export default function ChatPage() {
   const { id } = useParams();
   const { contacts, setContacts } = useChat();
   const contactId = Number(id);
-
+  const router = useRouter();
+  
   const [input, setInput] = useState('');
   const selected = contacts.find(c => c.id === contactId);
 
@@ -54,33 +56,33 @@ export default function ChatPage() {
     <div className="flex flex-col h-screen w-full">
     {/* top bar */}
     {selected && (
-  <div className="flex items-center gap-3 px-4 py-2 bg-white shadow-sm border-b border-gray-200">
-    {/* back arrow, only show if mobile layout */}
-    {/* <button className="md:hidden">
-      <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
-    </button> */}
+      <div className="flex items-center gap-3 px-4 py-2 bg-white shadow-sm border-b border-gray-200">
+        {/* back arrow, only show if mobile layout */}
+        <button className="md:hidden" onClick={() => router.back()}>
+          <ArrowLeft className="w-5 h-5 text-gray-600" />
+        </button>
 
-    <Image
-      src={selected.avatar}
-      alt={selected.name}
-      width={40}
-      height={40}
-      className="rounded-full object-cover"
-    />
+        <Image
+          src={selected.avatar}
+          alt={selected.name}
+          width={40}
+          height={40}
+          className="rounded-full object-cover"
+        />
 
-    <div className="flex flex-col">
-      <span className="font-medium text-gray-900">{selected.name}</span>
-      <span className="text-sm text-gray-500">{selected.address}</span>
-    </div>
+        <div className="flex flex-col">
+          <span className="font-medium text-gray-900">{selected.name}</span>
+          <span className="text-sm text-gray-500">{selected.address}</span>
+        </div>
 
-    <div className="ml-auto flex items-center gap-3">
-      {/* optional icons: call, video, menu */}
-      <Image src="/etherscan.png" alt="call" width={12} height={12} className="w-5 h-5 text-gray-600" />
-      <Image src="/x.png" alt="x.com" width={12} height={12} className="w-5 h-5 text-gray-600" />
-      {/* <DotsVerticalIcon className="w-5 h-5 text-gray-600" /> */}
-    </div>
-  </div>
-)}
+        <div className="ml-auto flex items-center gap-3">
+          {/* optional icons: call, video, menu */}
+          <Image src="/etherscan.png" alt="call" width={12} height={12} className="w-5 h-5 text-gray-600" />
+          <Image src="/x.png" alt="x.com" width={12} height={12} className="w-5 h-5 text-gray-600" />
+          {/* <DotsVerticalIcon className="w-5 h-5 text-gray-600" /> */}
+        </div>
+      </div>
+    )}
 
     {/* messages */}
       <div className="flex-1 overflow-y-auto p-2 space-y-2">
@@ -121,24 +123,6 @@ export default function ChatPage() {
       onKeyDown={(e) => e.key === 'Enter' && handleSend()
       }
       />}
-      {/* {selected && (
-        <div className="p-4 border-t flex gap-2">
-          <input
-            type="text"
-            className="flex-1 border rounded px-3 py-2"
-            placeholder="Type your message..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-          />
-          <button
-            onClick={handleSend}
-            className="bg-blue-500 text-white px-4 py-2 rounded"
-          >
-            Send
-          </button>
-        </div>
-      )} */}
     </div>
     </Page.Main>
     </>
