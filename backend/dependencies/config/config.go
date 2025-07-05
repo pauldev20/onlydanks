@@ -43,8 +43,8 @@ type Config struct {
 	PrivateKey  string      `koanf:"private_key" validate:"required"`
 	RpcUrl      string      `koanf:"rpc_url" validate:"required"`
 	ChainId     uint64      `koanf:"chain_id" validate:"required"`
-
-	Database string `koanf:"database"                validate:"required,url"`
+	EnsName     string      `koanf:"ens_name" validate:"required"`
+	Database    string      `koanf:"database"                validate:"required,url"`
 }
 
 func NewConfig(envFiles ...string) (*Config, error) {
