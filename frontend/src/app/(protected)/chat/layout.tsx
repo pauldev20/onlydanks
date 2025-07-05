@@ -3,7 +3,6 @@
 
 import { ReactNode, useEffect } from 'react';
 import ContactsPage from './contacts'; // import directly
-import clsx from 'clsx';
 import { Page } from '@/components/PageLayout';
 import { Button, TopBar } from '@worldcoin/mini-apps-ui-kit-react';
 import Image from 'next/image';
@@ -15,8 +14,11 @@ import { config } from '@/wagmi/config';
 import { worldchainSepolia } from 'viem/chains';
 import ensRegistryAbi from "@/abi/ENSRegistry.json";
 import { namehash, normalize } from 'viem/ens';
+import { usePathname } from 'next/navigation';
+import clsx from 'clsx';
 
 export default function ChatLayout({ children }: { children: ReactNode }) {
+    const pathname = usePathname();
     const router = useRouter();
     const { isDisconnected } = useAccount();
 	const { data: walletClient } = useWalletClient();
@@ -55,6 +57,8 @@ export default function ChatLayout({ children }: { children: ReactNode }) {
 			redirectTo: '/',
 		});
 	}
+    const isChatPage = pathname?.match(/^\/chat\/\d+$/); // matches /chat/0, /chat/1 etc
+
 
   return (
     <>
@@ -79,12 +83,17 @@ export default function ChatLayout({ children }: { children: ReactNode }) {
         />
       </Page.Header>
     <div className="flex h-screen overflow-hidden">
-      <div className="basis-full sm:basis-1/3 shrink-0 border-r border-gray-200">
-        <ContactsPage />
-      </div>
-      <div className={clsx('flex-1 md:block w-2/3')}>
-        {children}
-      </div>
+        {(!isChatPage || typeof window === 'undefined' || window.innerWidth >= 640) && (
+          <div className="basis-full sm:basis-1/3 shrink-0 border-r border-gray-200">
+            <ContactsPage />
+          </div>
+        )}
+      <div className={clsx(
+          'flex-1',
+          isChatPage ? 'block' : 'hidden sm:block'
+        )}>
+          {children}
+        </div>
     </div>
     </>
   );
