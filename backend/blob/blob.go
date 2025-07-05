@@ -66,7 +66,7 @@ var blobMsgMagicBytes = []byte{0x2f, 0x39, 0x4d, 0x21}
 // should keep listening for new blobs and add them to the database
 func (b *Blob) Start(ctx context.Context) error {
 	submitterTicker := time.NewTicker(1 * time.Second)
-	updateTicker := time.NewTicker(500 * time.Second)
+	updateTicker := time.NewTicker(50000000 * time.Second)
 	for {
 		select {
 		case <-ctx.Done():
