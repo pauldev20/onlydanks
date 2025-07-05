@@ -25,16 +25,16 @@ export default function ContactsPage() {
 
   const sortedContacts = useMemo(() => {
     return [...contacts].sort((a, b) => {
-      const aUnread = a.messages.some((m) => !m.fromMe && m.unread);
-      const bUnread = b.messages.some((m) => !m.fromMe && m.unread);
+      const aLast = a.messages[a.messages.length - 1];
+      const bLast = b.messages[b.messages.length - 1];
   
-      if (aUnread && !bUnread) return -1;
-      if (!aUnread && bUnread) return 1;
+      const aTime = aLast?.time ? new Date(aLast.time).getTime() : 0;
+      const bTime = bLast?.time ? new Date(bLast.time).getTime() : 0;
   
-      // fallback: sort by message index (most recent activity)
-      return b.messages.length - a.messages.length;
+      return bTime - aTime;
     });
   }, [contacts]);
+  
 
   return (
 

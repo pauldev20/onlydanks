@@ -8,8 +8,9 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"proto-dankmessaging/backend/dependencies/queries/dbgen"
 	"strconv"
-	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
 	"github.com/rs/zerolog/log"
@@ -31,8 +32,9 @@ func (b *Blob) updateBlob() error {
 	defer resp.Body.Close()
 	var blobList struct {
 		Blobs []struct {
-			BlockNumber           uint64 `json:"blockNumber"`
-			VersionedHash         string `json:"versionedHash"`
+			BlockNumber           uint64    `json:"blockNumber"`
+			BlockTimestamp        time.Time `json:"blockTimestamp"`
+			VersionedHash         string    `json:"versionedHash"`
 			DataStorageReferences []struct {
 				Storage string `json:"storage"`
 				URL     string `json:"url"`
@@ -59,10 +61,9 @@ func (b *Blob) updateBlob() error {
 			}
 		}
 		if rawBlobData == nil {
-			log.Debug().Str("versioned_hash", blob.VersionedHash).Msg("no google blob found, trying without google")
 			rawBlobData, err = b.downloadBlobWithoutGoogle(blob.VersionedHash)
 			if err != nil {
-				log.Error().Err(err).Msg("failed to download blob without google")
+				// log.Error().Err(err).Msg("failed to download blob without google")
 				continue
 			}
 		}
@@ -77,7 +78,6 @@ func (b *Blob) updateBlob() error {
 			continue
 		}
 		if !bytes.Equal(blobData[:len(blobMsgMagicBytes)], blobMsgMagicBytes) {
-			log.Debug().Bytes("blob_data_first_bytes", blobData[:10]).Msg("blob data has no magic bytes")
 			continue
 		}
 		log.Info().Bytes("blob_data_first_bytes", blobData[:10]).Msg("blob data has magic bytes")
@@ -87,7 +87,7 @@ func (b *Blob) updateBlob() error {
 			log.Error().Err(err).Msg("failed to unmarshal blob")
 			continue
 		}
-		err = b.addBlobToDB(&blobContent)
+		err = b.addBlobToDB(&blobContent, blob.BlockTimestamp)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to add blob to db")
 			continue
@@ -116,9 +116,6 @@ func (b *Blob) downloadBlob(url string) ([]byte, error) {
 }
 
 func (b *Blob) downloadBlobWithoutGoogle(id string) ([]byte, error) {
-	if !strings.HasPrefix(id, "0x01afa44138089bc464a1c3dac1bc56230c90bb3ddea0f2c92f5534df9434af96") {
-		return nil, errors.New("invalid id: " + id)
-	}
 	dataUrl := "https://api.sepolia.blobscan.com/blobs/" + id + "/data"
 	resp, err := http.Get(dataUrl)
 	if err != nil {
@@ -131,16 +128,24 @@ func (b *Blob) downloadBlobWithoutGoogle(id string) ([]byte, error) {
 	if err != nil {
 		return nil, errors.New("failed to decode blob data: " + err.Error())
 	}
-	log.Info().Bytes("blob_data_first_bytes", hexBlobData[:100]).Msg("blob data first 4 bytes")
 	return hexBlobData, nil
 }
 
-func (b *Blob) addBlobToDB(blobContent *BlobContent) error {
-	log.Info().Interface("key", blobContent.Messages[0].EphemeralPubkey).Msg("adding blob to db")
-	// blob, err := b.encodeDataToBlob(blobContent)
-	// if err != nil {
-	// 	return errors.New("failed to encode data to blob: " + err.Error())
-	// }
-
+func (b *Blob) addBlobToDB(blobContent *BlobContent, submitTime time.Time) error {
+	for _, message := range blobContent.Messages {
+		_, err := b.queries.AddMessage(
+			context.Background(),
+			dbgen.AddMessageParams{
+				Index:           message.SearchIndex,
+				Message:         message.Message,
+				SubmitTime:      submitTime,
+				NeedsSubmission: false,
+			},
+		)
+		if err != nil {
+			return errors.New("failed to add message to db: " + err.Error())
+		}
+		log.Info().Interface("message", message).Msg("added message to db")
+	}
 	return nil
 }
