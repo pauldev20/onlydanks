@@ -3,6 +3,7 @@ package blob
 import (
 	"context"
 	"errors"
+	"math"
 	"math/big"
 	"proto-dankmessaging/backend/dependencies"
 	"proto-dankmessaging/backend/dependencies/queries/dbgen"
@@ -66,7 +67,12 @@ var blobMsgMagicBytes = []byte{0x2f, 0x39, 0x4d, 0x21}
 // should keep listening for new blobs and add them to the database
 func (b *Blob) Start(ctx context.Context) error {
 	submitterTicker := time.NewTicker(1 * time.Second)
-	updateTicker := time.NewTicker(50000000 * time.Second)
+	var updateTicker *time.Ticker
+	if b.dep.Config.BlobUpdate {
+		updateTicker = time.NewTicker(5 * time.Second)
+	} else {
+		updateTicker = time.NewTicker(time.Duration(math.MaxInt64))
+	}
 	for {
 		select {
 		case <-ctx.Done():
