@@ -53,7 +53,7 @@ export default function ChatPage() {
   return (
     <>
 
-    <div className="flex flex-col h-screen w-full">
+    <div className="flex flex-col h-full w-full">
     {/* top bar */}
     {selected && (
       <div className="flex items-center gap-3 px-4 py-2 bg-white shadow-sm border-b border-gray-200">
@@ -110,6 +110,7 @@ export default function ChatPage() {
       {/* input */}
       {selected && <Input
       label="Type your message..."
+      className="mb-22"
       endAdornment={
         <button onClick={handleSend} className="flex items-center">
         <MapsArrowDiagonal 
