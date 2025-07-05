@@ -5,6 +5,7 @@ import { useChat } from '@/providers/ChatContext';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ListItem } from '@worldcoin/mini-apps-ui-kit-react';
+import { formatTime } from '@/helpers/time';
 import { useMemo, useState } from 'react';
 
 
@@ -52,14 +53,13 @@ export default function ContactsPage() {
         const last = c.messages[c.messages.length - 1];
         const unread = c.messages.some(m => !m.fromMe && m.unread);
         return (
-          <>  
-            <div className="p-1 px-1">
+            <div className="p-1 px-1" key={c.id}>
             <ListItem 
               description={last?.text}
-              label={c.name}
+              label={"lol"}
               startAdornment={
                 <Image
-                  src={`https://effigy.im/a/${c.address.slice(0, 40)}.svg`}
+                  src={`https://effigy.im/a/${c.address.slice(-40)}.svg`}
                   alt={c.address}
                   width={48}
                   height={48}
@@ -74,14 +74,13 @@ export default function ContactsPage() {
                   </span>
                 )}
                 <span className=" text-xs text-gray-400 ">
-                  {last?.time}
+                  {last?.time && formatTime(last.time)}
                 </span>
               </div>
               }
             onClick={() => router.push(`/chat/${c.id}`)}
             />
           </div>
-          </>
         );
       })}
     </div>

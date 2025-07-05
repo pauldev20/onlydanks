@@ -10,12 +10,12 @@ import { Input } from '@worldcoin/mini-apps-ui-kit-react';
 import { MapsArrowDiagonal, DoubleCheck, ArrowLeft } from 'iconoir-react';
 import { useRouter } from 'next/navigation';
 
-
+import { formatTime } from '@/helpers/time';
 
 
 export default function ChatPage() {
   const { id } = useParams();
-  const { contacts, setContacts } = useChat();
+  const { contacts, setContacts, sendMessage } = useChat();
   const contactId = Number(id);
   const router = useRouter();
   
@@ -39,14 +39,7 @@ export default function ChatPage() {
 
   const handleSend = () => {
     if (!selected || input.trim() === '') return;
-    const updated = contacts.map(c => {
-      if (c.id !== contactId) return c;
-      return {
-        ...c,
-        messages: [...c.messages, { fromMe: true, text: input, unread: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) }],
-      };
-    });
-    setContacts(updated);
+    sendMessage(input, selected.address);
     setInput('');
   };
 
@@ -63,16 +56,16 @@ export default function ChatPage() {
         </button>
 
         <Image
-          src={selected.avatar}
-          alt={selected.name}
+          src={`https://effigy.im/a/${selected.address.slice(-40)}.svg`}
+          alt={selected.address}
           width={40}
           height={40}
           className="rounded-full object-cover"
         />
 
         <div className="flex flex-col">
-          <span className="font-medium text-gray-900">{selected.name}</span>
-          <span className="text-sm text-gray-500">{selected.address}</span>
+		  <span className="font-medium text-gray-900">lol</span>
+          <span className="text-sm text-gray-500">0x{selected.address.slice(-40)}</span>
         </div>
 
         <div className="ml-auto flex items-center gap-3">
@@ -97,7 +90,7 @@ export default function ChatPage() {
             >
             {m.text}
             <div className="flex justify-end text-xs text-gray-400 mt-1 items-center gap-1">
-              <span> {m.time}</span>
+              <span> {formatTime(m.time)}</span>
               {m.fromMe && (
                 <DoubleCheck className="w-4 h-4" />
               )}
@@ -109,20 +102,20 @@ export default function ChatPage() {
 
       {/* input */}
       {selected && <Input
-      label="Type your message..."
-      className="mb-22"
-      endAdornment={
-        <button onClick={handleSend} className="flex items-center">
-        <MapsArrowDiagonal 
-          aria-label="send"
-          className="w-6 h-6"
-        />
-      </button>}
-      value={input}
-      onChange={(e) => setInput(e.target.value)}
-      showEndDivider={true}
-      onKeyDown={(e) => e.key === 'Enter' && handleSend()
-      }
+		label="Type your message..."
+		className="mb-22 w-auto mx-2"
+		endAdornment={
+			<button onClick={handleSend} className="flex items-center">
+			<MapsArrowDiagonal 
+			aria-label="send"
+			className="w-6 h-6"
+			/>
+		</button>}
+		value={input}
+		onChange={(e) => setInput(e.target.value)}
+		showEndDivider={true}
+		onKeyDown={(e) => e.key === 'Enter' && handleSend()
+		}
       />}
     </div>
 
