@@ -5,7 +5,7 @@ import '@rainbow-me/rainbowkit/styles.css';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
-import { ChatProvider } from '@/lib/ChatContext';
+import { ChatProvider } from '@/providers/ChatContext';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
