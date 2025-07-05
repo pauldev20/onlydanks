@@ -3,6 +3,7 @@ package blob
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
 	"net/http"
@@ -114,7 +115,7 @@ func (b *Blob) generateAndSubmitBlob() error {
 	err = b.submitBlob(context.Background(), blobBytes)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to submit blob")
-		// return err
+		return err
 	}
 	for _, msg := range msgs {
 		err = b.queries.RemoveBlobSubmission(context.Background(), msg.ID)
@@ -131,19 +132,27 @@ func (b *Blob) submitBlob(ctx context.Context, blobBytes []byte) error {
 	if err != nil {
 		return errors.New("failed to get nonce: " + err.Error())
 	}
-
-	var blob kzg4844.Blob
-	copy(blob[:], blobBytes)
-	blobCommitment, err := kzg4844.BlobToCommitment(&blob)
+	blob, err := b.encodeDataToBlob(blobBytes)
+	if err != nil {
+		return errors.New("failed to encode data to blob: " + err.Error())
+	}
+	// // Pad blobBytes to be divisible by 8
+	// padding := make([]byte, 32)
+	// blobBytes = append(padding, blobBytes...)
+	// var blob kzg4844.Blob
+	// BLOB_DATA = (b"\x00" * 32 * (4096 - len(encoded_text) // 32)) + encoded_text
+	// copy(blob[:], blobBytes)
+	fmt.Println("blob", blob[:512])
+	blobCommitment, err := kzg4844.BlobToCommitment(blob)
 	if err != nil {
 		return errors.New("failed to compute blob commitment: " + err.Error())
 	}
-	blobProof, err := kzg4844.ComputeBlobProof(&blob, blobCommitment)
+	blobProof, err := kzg4844.ComputeBlobProof(blob, blobCommitment)
 	if err != nil {
 		return errors.New("failed to compute blob proof: " + err.Error())
 	}
 	sidecar := types.BlobTxSidecar{
-		Blobs:       []kzg4844.Blob{blob},
+		Blobs:       []kzg4844.Blob{*blob},
 		Commitments: []kzg4844.Commitment{blobCommitment},
 		Proofs:      []kzg4844.Proof{blobProof},
 	}
@@ -216,4 +225,37 @@ func (b *Blob) updateBlob() error {
 	// -H 'accept: application/json'
 	// head is {block_id}
 	return nil
+}
+
+func (b *Blob) encodeDataToBlob(data []byte) (*kzg4844.Blob, error) {
+	const (
+		BlobSize         = 131072 // 4096 * 32 bytes
+		FieldElementSize = 32
+		// Use 31 bytes per field element to ensure canonical form
+		UsableBytes = 31
+	)
+
+	var blob kzg4844.Blob
+
+	// Calculate how many field elements we need
+	numFieldElements := (len(data) + UsableBytes - 1) / UsableBytes
+	if numFieldElements > 4096 {
+		return nil, errors.New("data too large for single blob")
+	}
+
+	// Encode data into field elements
+	for i := 0; i < numFieldElements; i++ {
+		start := i * UsableBytes
+		end := start + UsableBytes
+		if end > len(data) {
+			end = len(data)
+		}
+
+		// Copy up to 31 bytes into each field element, leaving the first byte as 0
+		fieldElementStart := i * FieldElementSize
+		blob[fieldElementStart] = 0 // Ensure first byte is 0 for canonical form
+		copy(blob[fieldElementStart+1:fieldElementStart+FieldElementSize], data[start:end])
+	}
+
+	return &blob, nil
 }
