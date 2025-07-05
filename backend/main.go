@@ -8,7 +8,6 @@ import (
 	"proto-dankmessaging/backend/blob"
 	"proto-dankmessaging/backend/dependencies"
 	"proto-dankmessaging/backend/dependencies/config"
-	"proto-dankmessaging/backend/ens"
 	"runtime/debug"
 	"sync"
 	"syscall"
@@ -24,11 +23,6 @@ func main() {
 	}
 	setupLogger(dep.Config)
 
-	ens, err := ens.NewENSWrapper(dep)
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to create ens")
-	}
-
 	wg := sync.WaitGroup{}
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -38,7 +32,7 @@ func main() {
 	}
 	startBlob(ctx, b, &wg)
 
-	api := api.NewAPI(dep, ens)
+	api := api.NewAPI(dep)
 	startAPI(api, &wg)
 
 	log.Info().Msg("server running")

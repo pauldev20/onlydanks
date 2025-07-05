@@ -8,7 +8,7 @@ contract L2RegistrarTest is Test {
     L2Registrar l2Registrar;
 
     function setUp() public {
-        l2Registrar = new L2Registrar(0x1468386e6ABb1874c0d9fD43899EbD21A12470A6);
+        l2Registrar = L2Registrar(0x1468386e6ABb1874c0d9fD43899EbD21A12470A6);
     }
 
     function test_GetName() public {

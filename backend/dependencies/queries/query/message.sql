@@ -34,3 +34,10 @@ UPDATE message.blob_update SET block_height = $1;
 -- name: GetBlobUpdate :one
 SELECT * FROM message.blob_update LIMIT 1;
 
+-- name: AddENSSubdomain :exec
+INSERT INTO message.ens_subdomain (subdomain, address) VALUES ($1, $2);
+
+-- name: GetENSSubdomainByAddress :one
+SELECT * FROM message.ens_subdomain WHERE address = $1;
+
+

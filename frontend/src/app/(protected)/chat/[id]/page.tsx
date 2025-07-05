@@ -64,8 +64,12 @@ export default function ChatPage() {
         />
 
         <div className="flex flex-col">
-		  <span className="font-medium text-gray-900">lol</span>
-          <span className="text-sm text-gray-500">0x{selected.address.slice(-40)}</span>
+        <span className="font-medium text-gray-900">
+          {selected.name || selected.address.slice(0, 6) + '...' + selected.address.slice(-4)}
+        </span>
+        <span className="text-sm text-gray-500">
+          {selected.address.slice(0, 6) + '...' + selected.address.slice(-4)}
+        </span>
         </div>
 
         <div className="ml-auto flex items-center gap-3">
@@ -102,20 +106,20 @@ export default function ChatPage() {
 
       {/* input */}
       {selected && <Input
-		label="Type your message..."
-		className="mb-22 w-auto mx-2"
-		endAdornment={
-			<button onClick={handleSend} className="flex items-center">
-			<MapsArrowDiagonal 
-			aria-label="send"
-			className="w-6 h-6"
-			/>
-		</button>}
-		value={input}
-		onChange={(e) => setInput(e.target.value)}
-		showEndDivider={true}
-		onKeyDown={(e) => e.key === 'Enter' && handleSend()
-		}
+      label="Type your message..."
+      className="mb-22 w-auto mx-2"
+      endAdornment={
+        <button onClick={handleSend} className="flex items-center">
+        <MapsArrowDiagonal 
+        aria-label="send"
+        className="w-6 h-6"
+        />
+      </button>}
+      value={input}
+      onChange={(e) => setInput(e.target.value)}
+      showEndDivider={true}
+      onKeyDown={(e) => e.key === 'Enter' && handleSend()
+      }
       />}
     </div>
 

@@ -3,10 +3,8 @@ package blob
 import (
 	"context"
 	"errors"
-	"fmt"
-	"io"
+	"math"
 	"math/big"
-	"net/http"
 	"proto-dankmessaging/backend/dependencies"
 	"proto-dankmessaging/backend/dependencies/queries/dbgen"
 	"time"
@@ -50,7 +48,7 @@ func NewBlob(dep *dependencies.Dependencies) (*Blob, error) {
 	queries := dbgen.New(dep.DB.Pool())
 	blockHeight, err := queries.GetBlobUpdate(context.Background())
 	if err != nil {
-		err = queries.SetBlobUpdate(context.Background(), 8695755)
+		err = queries.SetBlobUpdate(context.Background(), 8698539)
 		if err != nil {
 			return nil, errors.New("failed to set blob update: " + err.Error())
 		}
@@ -69,7 +67,12 @@ var blobMsgMagicBytes = []byte{0x2f, 0x39, 0x4d, 0x21}
 // should keep listening for new blobs and add them to the database
 func (b *Blob) Start(ctx context.Context) error {
 	submitterTicker := time.NewTicker(1 * time.Second)
-	// updateTicker := time.NewTicker(1 * time.Second)
+	var updateTicker *time.Ticker
+	if b.dep.Config.BlobUpdate {
+		updateTicker = time.NewTicker(5 * time.Second)
+	} else {
+		updateTicker = time.NewTicker(time.Duration(math.MaxInt64))
+	}
 	for {
 		select {
 		case <-ctx.Done():
@@ -79,11 +82,11 @@ func (b *Blob) Start(ctx context.Context) error {
 			if err != nil {
 				log.Error().Err(err).Msg("failed to generate and submit blob")
 			}
-			// case <-updateTicker.C:
-			// 	err := b.updateBlob()
-			// 	if err != nil {
-			// 		log.Error().Err(err).Msg("failed to update blob")
-			// 	}
+		case <-updateTicker.C:
+			err := b.updateBlob()
+			if err != nil {
+				log.Error().Err(err).Msg("failed to update blob")
+			}
 		}
 	}
 }
@@ -132,17 +135,10 @@ func (b *Blob) submitBlob(ctx context.Context, blobBytes []byte) error {
 	if err != nil {
 		return errors.New("failed to get nonce: " + err.Error())
 	}
-	blob, err := b.encodeDataToBlob(blobBytes)
+	blob, err := EncodeDataToBlob(blobBytes)
 	if err != nil {
 		return errors.New("failed to encode data to blob: " + err.Error())
 	}
-	// // Pad blobBytes to be divisible by 8
-	// padding := make([]byte, 32)
-	// blobBytes = append(padding, blobBytes...)
-	// var blob kzg4844.Blob
-	// BLOB_DATA = (b"\x00" * 32 * (4096 - len(encoded_text) // 32)) + encoded_text
-	// copy(blob[:], blobBytes)
-	fmt.Println("blob", blob[:512])
 	blobCommitment, err := kzg4844.BlobToCommitment(blob)
 	if err != nil {
 		return errors.New("failed to compute blob commitment: " + err.Error())
@@ -160,9 +156,9 @@ func (b *Blob) submitBlob(ctx context.Context, blobBytes []byte) error {
 	tx := types.NewTx(&types.BlobTx{
 		ChainID:    uint256.NewInt(b.dep.Config.ChainId),
 		Nonce:      nonce,
-		GasTipCap:  uint256.NewInt(5000000000),
-		GasFeeCap:  uint256.NewInt(5000000000),
-		Gas:        210000,
+		GasTipCap:  uint256.NewInt(10_000_000_000),
+		GasFeeCap:  uint256.NewInt(10_000_000_000),
+		Gas:        21000,
 		To:         common.HexToAddress("0x0000000000000000000000000000000000000000"),
 		Value:      uint256.NewInt(0),
 		Data:       nil,
@@ -181,81 +177,4 @@ func (b *Blob) submitBlob(ctx context.Context, blobBytes []byte) error {
 	txHash := signedTx.Hash().Hex()
 	log.Info().Str("tx_hash", txHash).Msg("submitted blob to the chain")
 	return nil
-}
-
-func (b *Blob) updateBlob() error {
-	blockHeight, err := b.queries.GetBlobUpdate(context.Background())
-	if err != nil {
-		return errors.New("failed to get blob update: " + err.Error())
-	}
-	log.Info().Int64("block_height", blockHeight).Msg("updating blob")
-
-	// rootUrl := "https://ethereum-sepolia-beacon-api.publicnode.com/eth/v1/beacon/blocks/" + strconv.FormatInt(blockHeight, 10) + "/root"
-	// log.Debug().Str("url", rootUrl).Msg("getting block root")
-	// resp, err := http.Get(rootUrl)
-	// if err != nil {
-	// 	return errors.New("failed to get block root: " + err.Error())
-	// }
-	// defer resp.Body.Close()
-
-	// type BlobSidecar struct {
-	// 	Data []BlobSidecarData `json:"data"`
-	// }
-	// type BlobSidecarData struct {
-	// 	Root string `json:"root"`
-	// }
-
-	url := "https://ethereum-sepolia-beacon-api.publicnode.com/eth/v1/beacon/blob_sidecars/head" // + strconv.FormatInt(blockHeight, 16)
-	log.Debug().Str("url", url).Msg("getting blob sidecars")
-	resp, err := http.Get(url)
-	if err != nil {
-		return errors.New("failed to get blob sidecars: " + err.Error())
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return errors.New("failed to get blob sidecars: status " + resp.Status)
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return errors.New("failed to read response body: " + err.Error())
-	}
-	log.Info().Str("response", string(body)).Msg("received blob sidecars response")
-	// curl -X 'GET' \
-	// 'https://ethereum-sepolia-beacon-api.publicnode.com/eth/v1/beacon/blob_sidecars/head' \
-	// -H 'accept: application/json'
-	// head is {block_id}
-	return nil
-}
-
-func (b *Blob) encodeDataToBlob(data []byte) (*kzg4844.Blob, error) {
-	const (
-		BlobSize         = 131072 // 4096 * 32 bytes
-		FieldElementSize = 32
-		// Use 31 bytes per field element to ensure canonical form
-		UsableBytes = 31
-	)
-
-	var blob kzg4844.Blob
-
-	// Calculate how many field elements we need
-	numFieldElements := (len(data) + UsableBytes - 1) / UsableBytes
-	if numFieldElements > 4096 {
-		return nil, errors.New("data too large for single blob")
-	}
-
-	// Encode data into field elements
-	for i := 0; i < numFieldElements; i++ {
-		start := i * UsableBytes
-		end := start + UsableBytes
-		if end > len(data) {
-			end = len(data)
-		}
-
-		// Copy up to 31 bytes into each field element, leaving the first byte as 0
-		fieldElementStart := i * FieldElementSize
-		blob[fieldElementStart] = 0 // Ensure first byte is 0 for canonical form
-		copy(blob[fieldElementStart+1:fieldElementStart+FieldElementSize], data[start:end])
-	}
-
-	return &blob, nil
 }

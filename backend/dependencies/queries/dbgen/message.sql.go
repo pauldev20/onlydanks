@@ -39,6 +39,23 @@ func (q *Queries) AddBlobSubmission(ctx context.Context, arg AddBlobSubmissionPa
 	return i, err
 }
 
+const addENSSubdomain = `-- name: AddENSSubdomain :exec
+INSERT INTO message.ens_subdomain (subdomain, address) VALUES ($1, $2)
+`
+
+type AddENSSubdomainParams struct {
+	Subdomain string
+	Address   string
+}
+
+// AddENSSubdomain
+//
+//	INSERT INTO message.ens_subdomain (subdomain, address) VALUES ($1, $2)
+func (q *Queries) AddENSSubdomain(ctx context.Context, arg AddENSSubdomainParams) error {
+	_, err := q.db.Exec(ctx, addENSSubdomain, arg.Subdomain, arg.Address)
+	return err
+}
+
 const addMessage = `-- name: AddMessage :one
 INSERT INTO message.blob (index, message, submit_time, needs_submission) VALUES ($1, $2, $3, $4) 
 ON CONFLICT (index, message) DO UPDATE SET submit_time = EXCLUDED.submit_time, needs_submission = EXCLUDED.needs_submission 
@@ -142,6 +159,20 @@ func (q *Queries) GetBlobUpdate(ctx context.Context) (int64, error) {
 	var block_height int64
 	err := row.Scan(&block_height)
 	return block_height, err
+}
+
+const getENSSubdomainByAddress = `-- name: GetENSSubdomainByAddress :one
+SELECT subdomain, address FROM message.ens_subdomain WHERE address = $1
+`
+
+// GetENSSubdomainByAddress
+//
+//	SELECT subdomain, address FROM message.ens_subdomain WHERE address = $1
+func (q *Queries) GetENSSubdomainByAddress(ctx context.Context, address string) (MessageEnsSubdomain, error) {
+	row := q.db.QueryRow(ctx, getENSSubdomainByAddress, address)
+	var i MessageEnsSubdomain
+	err := row.Scan(&i.Subdomain, &i.Address)
+	return i, err
 }
 
 const getMessagesByIndex = `-- name: GetMessagesByIndex :many

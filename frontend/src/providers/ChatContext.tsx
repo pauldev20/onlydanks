@@ -24,6 +24,8 @@ interface Message {
 
 interface Contact {
   id: number;
+  name: string;
+  avatar: string;
   address: string;
   messages: Message[];
 }
@@ -104,16 +106,45 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const { data: walletClient } = useWalletClient();
   const { isConnected } = useAccount();
   const { status } = useSession();
+  const [demoInjected, setDemoInjected] = useState(false);
+
 
   useEffect(() => {
     const initalize = async () => {
+      if (!demoInjected) {
+        setContacts(prev => [
+          ...prev,
+          {
+            id: 0,
+            name: 'kartik.eth',
+            avatar: '/kartik.jpg',
+            address: '0xdemo000000000000000000000000000000000000000000000000000000000001',
+            messages: [
+              { fromMe: false, unread: false, text: 'gm fren', time: new Date().toISOString() },
+              { fromMe: true, unread: false, text: 'gm sir, we agreed on $1k to buy a finalist spot. Want it to your main wallet?', time: new Date().toISOString() },
+            ]
+          },
+          {
+            id: 1,
+            name: 'vitalik.eth',
+            avatar: '/kartik.jpg',
+            address: '0xdemo000000000000000000000000000000000000000000000000000000000002',
+            messages: [
+              { fromMe: true, unread: false, text: 'yo what’s up', time: new Date().toISOString() },
+              { fromMe: false, unread: false, text: 'yo bro, finally using OnlyDank. Super glad to sext anonymously with you', time: new Date().toISOString() }
+            ]
+        }
+      ]);
+      setDemoInjected(true);
+    }
 		setRegistered(true);
+
 		if (!isConnected || !walletClient || !registered) return;
 		console.log("Wallet connected, fetching contacts...");
 		fetchContacts();
     };
     initalize();
-  }, [walletClient, isConnected, status, registered]);
+  }, [walletClient, isConnected, status, registered, demoInjected]);
 
   const fetchContacts = async () => {
 	/* ----------------------------- Read MyKeyPair ----------------------------- */
@@ -196,6 +227,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 				contactId = newContacts.length;
 				newContacts.push({
 					id: contactId,
+					name: message.sender,
+          avatar: 'None',
 					address: message.sender,
 					messages: []
 				});
@@ -207,6 +240,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 			if (!messageExists) {
 				newContacts[contactId] = {
 					id: contactId,
+					name: message.sender,
+					avatar: 'None',
 					address: message.sender,
 					messages: [...existingMessages, { fromMe: false, text: message.message, time: message.submit_time, unread: true }]
 				};
@@ -220,6 +255,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 				contactId = newContacts.length;
 				newContacts.push({
 					id: contactId,
+					avatar: 'None',
+					name: sentMessage.recipient,
 					address: sentMessage.recipient,
 					messages: []
 				});
@@ -231,6 +268,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 			if (!messageExists) {
 				newContacts[contactId] = {
 					id: contactId,
+					name: sentMessage.recipient,
+					avatar: 'None',
 					address: sentMessage.recipient,
 					messages: [...existingMessages, { 
 						fromMe: sentMessage.fromMe, 
@@ -274,6 +313,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     const newContact = {
       id: contacts.length,
       address: address,
+      name: !textInput.startsWith('0x') ? textInput : `0x${address.slice(-40)}`,
+      avatar: 'None',
       messages: [],
     };
 
@@ -357,6 +398,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 		const newContacts = [...prev];
 		newContacts[contactId] = {
 			id: contactId,
+			name: recipient,
+			avatar: 'None',
 			address: recipient,
 			messages: [...(prev[contactId]?.messages ?? []), { fromMe: true, text: message, time: messageTime, unread: false }]
 		};
