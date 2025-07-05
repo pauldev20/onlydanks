@@ -26,7 +26,7 @@ export const Navigation = () => {
   return (
     <Tabs value={currentTab} onValueChange={handleTabChange} className="pt-2">
       <TabItem value="home" icon={<Home />} label="Home" />
-      <TabItem value="contacts" icon={<ChatBubble />} label="Chat" />
+      <TabItem value="chat" icon={<ChatBubble />} label="Chat" />
       {/* // TODO: These currently don't link anywhere */}
       <TabItem value="wallet" icon={<Bank />} label="Wallet" />
       {/* <TabItem value="profile" icon={<User />} label="Profile" /> */}
