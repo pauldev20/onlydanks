@@ -16,31 +16,54 @@ import ensRegistryAbi from "@/abi/ENSRegistry.json";
 import { namehash, normalize } from 'viem/ens';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
+import { useMiniKit } from '@worldcoin/minikit-js/minikit-provider';
+import { MiniKit } from '@worldcoin/minikit-js';
 
 export default function ChatLayout({ children }: { children: ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
     const { isDisconnected } = useAccount();
 	const { data: walletClient } = useWalletClient();
+	const { isInstalled } = useMiniKit();
 
     useEffect(() => {
-    if (isDisconnected) {
+    if (isDisconnected && !isInstalled) {
         router.push('/');
     }
     }, [isDisconnected, router]);
 
 	const handleDeleteAccount = async () => {
-		if (!walletClient) return;
+		if (!isInstalled && !walletClient) return;
 		const ensName = localStorage.getItem('com.dankchat.ensName');
 		if (!ensName) return;
-		await walletClient.switchChain(worldchainSepolia);
-		await walletClient.writeContract({
-			address: process.env.NEXT_PUBLIC_REGISTRY as `0x${string}`,
-			abi: ensRegistryAbi,
-			functionName: 'setText',
-			chain: worldchainSepolia,
-			args: [namehash(normalize(ensName)), "com.dankchat.publicKey", ""],
-		});
+
+		if (walletClient) {
+			await walletClient.switchChain(worldchainSepolia);
+		}
+		if (walletClient) {
+			await walletClient.writeContract({
+				address: process.env.NEXT_PUBLIC_REGISTRY as `0x${string}`,
+				abi: ensRegistryAbi,
+				functionName: 'setText',
+				chain: worldchainSepolia,
+				args: [namehash(normalize(ensName)), "com.dankchat.publicKey", ""],
+			});
+		} else {
+			const response = await MiniKit.commandsAsync.sendTransaction({
+				transaction: [
+					{
+						address: process.env.NEXT_PUBLIC_REGISTRY!,
+						abi: ensRegistryAbi,
+						functionName: 'setText',
+						args: [namehash(normalize(ensName)), "com.dankchat.publicKey", ""],
+					},
+				],
+			});
+			if (response.finalPayload.status !== 'success') {
+				console.error('Error deleting ENS', response.finalPayload.error_code);
+				return;
+			}
+		}
 
 		localStorage.removeItem('com.dankchat.privateKey');
 

@@ -1,4 +1,4 @@
 export const siteConfig = {
 	appName: 'OnlyDanks',
-	appDescription: 'OnlyDanks is a decentralized chat application for all your communication needs. 100% private, 100% secure.',
+	appDescription: 'Private end-to-end encrypted messenger built on blobs, fully anonymous and censorship-resistant.',
 }
