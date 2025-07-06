@@ -1,7 +1,7 @@
 'use client';
 
 import { TabItem, Tabs } from '@worldcoin/mini-apps-ui-kit-react';
-import { Bank, ChatBubble } from 'iconoir-react';
+import { Settings, ChatBubble } from 'iconoir-react';
 import { usePathname, useRouter } from 'next/navigation';
 
 /**
@@ -27,7 +27,7 @@ export const Navigation = () => {
       {/* <TabItem value="home" icon={<Home />} label="Home" /> */}
       <TabItem value="chat" icon={<ChatBubble />} label="Chat" />
       {/* // TODO: These currently don't link anywhere */}
-      <TabItem value="wallet" icon={<Bank />} label="Wallet" />
+      <TabItem value="settings" icon={<Settings />} label="Settings" />
       {/* <TabItem value="profile" icon={<User />} label="Profile" /> */}
     </Tabs>
   );

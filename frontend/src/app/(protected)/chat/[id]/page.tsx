@@ -85,7 +85,7 @@ export default function ChatPage() {
               m.fromMe ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-900'
             }`}
             >
-            {m.text}
+            {!m.text.startsWith("data:image/") ? m.text : <Image src={m.text} alt="image" width={200} height={100} />}
             <div className="flex justify-end text-xs text-gray-400 mt-1 items-center gap-1">
               <span> {formatTime(m.time)}</span>
               {m.fromMe && (

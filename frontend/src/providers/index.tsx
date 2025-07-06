@@ -9,12 +9,14 @@ import { config } from '@/wagmi/config';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { RainbowKitSiweNextAuthProvider } from '@rainbow-me/rainbowkit-siwe-next-auth';
+import { Toaster } from 'react-hot-toast';
+import dynamic from 'next/dynamic';
 
 
-// const ErudaProvider = dynamic(
-//   () => import('@/providers/Eruda').then((c) => c.ErudaProvider),
-//   { ssr: false },
-// );
+const ErudaProvider = dynamic(
+  () => import('@/providers/Eruda').then((c) => c.ErudaProvider),
+  { ssr: false },
+);
 
 interface ClientProvidersProps {
   children: ReactNode;
@@ -34,9 +36,13 @@ export default function ClientProviders({
 				<SessionProvider session={session}>
 					<RainbowKitSiweNextAuthProvider>
 						<RainbowKitProvider>
-							{/* <ErudaProvider> */}
+							<ErudaProvider>
+								<Toaster
+									position="top-center"
+									reverseOrder={false}
+								/>
 								{children}
-							{/* </ErudaProvider> */}
+							</ErudaProvider>
 						</RainbowKitProvider>
 					</RainbowKitSiweNextAuthProvider>
 				</SessionProvider>

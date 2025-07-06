@@ -1,7 +1,7 @@
 'use client';
 
 import { createPublicClient, http } from 'viem';
-import { sepolia, worldchainSepolia } from 'viem/chains';
+import { mainnet, worldchain } from 'viem/chains';
 import { normalize, namehash } from 'viem/ens';
 import { useState, useEffect } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
@@ -79,8 +79,8 @@ export default function LogicPage() {
 	const { data: walletClient } = useWalletClient();
 
 	const client = createPublicClient({
-		chain: sepolia,
-		transport: http('https://ethereum-sepolia-rpc.publicnode.com'),
+		chain: mainnet,
+		transport: http('https://rpc.mevblocker.io'),
 	});
 
 	useEffect(() => {
@@ -198,7 +198,7 @@ export default function LogicPage() {
 		const decryptedMessages: { message: string, submit_time: string, sender: string }[] = [];
 		for (const key of keys) {
 			let importedPublicKey: EC.KeyPair | null = null;
-			let sharedSecret: any | null = null;
+			let sharedSecret = null;
 			try {
 				importedPublicKey = ec.keyFromPublic({
 					x: key.slice(0, 64),
@@ -256,24 +256,27 @@ export default function LogicPage() {
 		if (!walletClient) return;
 		const privateKey = localStorage.getItem('com.dankchat.privateKey');
 		if (!privateKey) return;
-		const keyPair = ec.keyFromPrivate(privateKey, 'hex');
-		const publicKey = keyPair.getPublic();
-		const ethPubKey = `0x${publicKey.getY().toString("hex").slice(-40)}`;
+		// const keyPair = ec.keyFromPrivate(privateKey, 'hex');
+		// const publicKey = keyPair.getPublic();
+		// const ethPubKey = `0x${publicKey.getY().toString("hex").slice(-40)}`;
 		await walletClient.writeContract({
-			address: "0x1468386e6ABb1874c0d9fD43899EbD21A12470A6" as `0x${string}`,
+			address: process.env.NEXT_PUBLIC_REGISTRAR as `0x${string}`,
 			abi: ensRegistrarAbi,
 			functionName: 'register',
-			chain: worldchainSepolia,
-			args: ["lol123", "0x522F3038F78d91dADA58F8A768be7611134767D5"],
+			// chain: worldchainSepolia,
+			chain: worldchain,
+			args: ["lol123", "0xEaD69Bd3507E99427C49621c767eEd385f8E2E9f"],
 		});
 	}
 
 	const setENSRecord = async () => {
 		if (!walletClient) return;
 		await walletClient.writeContract({
-			address: "0x41Fb196Ae7D65E06880A240c8d1B91245Fb84807" as `0x${string}`,
+			address: process.env.NEXT_PUBLIC_REGISTRY as `0x${string}`,
 			abi: ensRegistryAbi,
 			functionName: 'setText',
+			// chain: worldchainSepolia,
+			chain: worldchain,
 			args: [namehash(normalize("lol123.onlydanks.eth")), "com.dankchat.publicKey", "0xaa9e420a573725371eceaee00b2273dd452dd6277df644716a61c6ab31df45628716af5dbd0149b3832b0b2002580437071801b327a4dc4171aaeee6b49faec7"],
 		});
 	}
