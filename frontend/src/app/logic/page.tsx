@@ -198,7 +198,7 @@ export default function LogicPage() {
 		const decryptedMessages: { message: string, submit_time: string, sender: string }[] = [];
 		for (const key of keys) {
 			let importedPublicKey: EC.KeyPair | null = null;
-			let sharedSecret: any | null = null;
+			let sharedSecret = null;
 			try {
 				importedPublicKey = ec.keyFromPublic({
 					x: key.slice(0, 64),
@@ -256,9 +256,9 @@ export default function LogicPage() {
 		if (!walletClient) return;
 		const privateKey = localStorage.getItem('com.dankchat.privateKey');
 		if (!privateKey) return;
-		const keyPair = ec.keyFromPrivate(privateKey, 'hex');
-		const publicKey = keyPair.getPublic();
-		const ethPubKey = `0x${publicKey.getY().toString("hex").slice(-40)}`;
+		// const keyPair = ec.keyFromPrivate(privateKey, 'hex');
+		// const publicKey = keyPair.getPublic();
+		// const ethPubKey = `0x${publicKey.getY().toString("hex").slice(-40)}`;
 		await walletClient.writeContract({
 			address: "0x1468386e6ABb1874c0d9fD43899EbD21A12470A6" as `0x${string}`,
 			abi: ensRegistrarAbi,
