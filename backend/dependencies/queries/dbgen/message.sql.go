@@ -11,9 +11,7 @@ import (
 )
 
 const addBlobSubmission = `-- name: AddBlobSubmission :one
-INSERT INTO message.blob_submission (index, message, pubkey) VALUES ($1, $2, $3) 
-ON CONFLICT (index, pubkey) DO NOTHING 
-RETURNING id, index, message, pubkey
+INSERT INTO message.blob_submission (index, message, pubkey) VALUES ($1, $2, $3) RETURNING id, index, message, pubkey
 `
 
 type AddBlobSubmissionParams struct {
@@ -24,9 +22,7 @@ type AddBlobSubmissionParams struct {
 
 // AddBlobSubmission
 //
-//	INSERT INTO message.blob_submission (index, message, pubkey) VALUES ($1, $2, $3)
-//	ON CONFLICT (index, pubkey) DO NOTHING
-//	RETURNING id, index, message, pubkey
+//	INSERT INTO message.blob_submission (index, message, pubkey) VALUES ($1, $2, $3) RETURNING id, index, message, pubkey
 func (q *Queries) AddBlobSubmission(ctx context.Context, arg AddBlobSubmissionParams) (MessageBlobSubmission, error) {
 	row := q.db.QueryRow(ctx, addBlobSubmission, arg.Index, arg.Message, arg.Pubkey)
 	var i MessageBlobSubmission

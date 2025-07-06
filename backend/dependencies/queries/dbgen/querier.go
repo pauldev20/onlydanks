@@ -12,9 +12,7 @@ import (
 type Querier interface {
 	//AddBlobSubmission
 	//
-	//  INSERT INTO message.blob_submission (index, message, pubkey) VALUES ($1, $2, $3)
-	//  ON CONFLICT (index, pubkey) DO NOTHING
-	//  RETURNING id, index, message, pubkey
+	//  INSERT INTO message.blob_submission (index, message, pubkey) VALUES ($1, $2, $3) RETURNING id, index, message, pubkey
 	AddBlobSubmission(ctx context.Context, arg AddBlobSubmissionParams) (MessageBlobSubmission, error)
 	//AddENSSubdomain
 	//
