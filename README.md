@@ -107,3 +107,16 @@ sequenceDiagram
 - Tries to compute shared secrets from each.
 - For each derived `hash(shared_secret)`, queries backend for matching blobs.
 - If found, decrypts the message and verifies the sender via signature.
+
+### Deployed Contracts
+**WorldChain**
+```
+ENS Registry:	0xc3a4eb979e9035486b54fe8b57d36aef9519eac6
+ENS Registrar:	0x491c7b1319A0c683027ae2A2A7b7c34913A6178e
+```
+
+**WorldChain Sepolia**
+```
+ENS Registry:	0x41Fb196Ae7D65E06880A240c8d1B91245Fb84807
+ENS Registrar:	0x1468386e6ABb1874c0d9fD43899EbD21A12470A6
+```
