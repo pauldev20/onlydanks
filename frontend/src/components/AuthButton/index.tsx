@@ -8,7 +8,6 @@ import { useSession } from "next-auth/react";
 import { redirect } from 'next/navigation';
 import { ec as EC } from 'elliptic';
 import { useChat } from '@/providers/ChatContext';
-import { worldchainSepolia } from 'viem/chains';
 import ensRegistrarAbi from '@/abi/L2Registrar.json';
 import ensRegistryAbi from '@/abi/ENSRegistry.json';
 import { useWalletClient } from 'wagmi';
@@ -19,6 +18,8 @@ import { normalize, namehash } from 'viem/ens';
 import { waitForTransactionReceipt } from '@wagmi/core'
 import { MiniKit } from '@worldcoin/minikit-js';
 import toast from 'react-hot-toast';
+import { worldchain } from 'viem/chains';
+import { createPublicClient, http } from 'viem';
 
 
 const ec = new EC('secp256k1');
@@ -87,20 +88,20 @@ export const AuthButton = () => {
 			address: process.env.NEXT_PUBLIC_REGISTRY as `0x${string}`,
 			abi: ensRegistryAbi,
 			functionName: 'owner',
-			chainId: worldchainSepolia.id,
+			chainId: worldchain.id,
 			args: [namehash(normalize(ensName + ".onlydanks.eth"))],
 		});
 		if (
 			domainOwner !== "0x0000000000000000000000000000000000000000"
-			&& domainOwner !== walletAddress
+			&& normalize(domainOwner as string) !== normalize(walletAddress as string)
 		) {
-			alert("ENS name already registered");
+			toast.error("ENS name already registered");
 			setEnsName("");
 			return;
 		}
 		if (walletClient) {
 			try {
-				await switchChain(walletClient, {id: worldchainSepolia.id});
+				await switchChain(walletClient, {id: worldchain.id});
 			} catch (error) {
 				toast.error('Error switching chain');
 				throw error;
@@ -113,7 +114,7 @@ export const AuthButton = () => {
 						address: process.env.NEXT_PUBLIC_REGISTRAR as `0x${string}`,
 						abi: ensRegistrarAbi,
 						functionName: 'register',
-						chain: worldchainSepolia,
+						chain: worldchain,
 						args: [ensName, walletClient.account.address],
 					});
 					await waitForTransactionReceipt(config, {hash: tx});
@@ -132,22 +133,28 @@ export const AuthButton = () => {
 						console.error('Error registering ENS', response.finalPayload.error_code);
 						return;
 					}
+					console.log("tx1", response);
+					await new Promise(resolve => setTimeout(resolve, 3000));
+					console.log("tx1 done");
 				}
 			} catch (error) {
 				toast.error('Error registering ENS');
 				throw error;
 			}
 		}
+		console.log("generating key pair");
 		const keyPair = ec.genKeyPair();
+		console.log("key pair generated");
 		localStorage.setItem('com.dankchat.privateKey', keyPair.getPrivate().toString('hex'));
 		const publicKey = `${keyPair.getPublic().getX().toString("hex")}${keyPair.getPublic().getY().toString("hex")}`;
+		console.log("public key generated");
 		try {
 			if (walletClient) {
 				const tx2 = await walletClient.writeContract({
 					address: process.env.NEXT_PUBLIC_REGISTRY as `0x${string}`,
 					abi: ensRegistryAbi,
 					functionName: 'setText',
-					chain: worldchainSepolia,
+					chain: worldchain,
 					args: [namehash(normalize(ensName + ".onlydanks.eth")), "com.dankchat.publicKey", publicKey],
 				});
 				await waitForTransactionReceipt(config, {hash: tx2});
@@ -166,6 +173,8 @@ export const AuthButton = () => {
 					console.error('Error setting ENS text', response.finalPayload.error_code);
 					return;
 				}
+				console.log("tx2", response);
+				await new Promise(resolve => setTimeout(resolve, 3000));
 			}
 		} catch (error) {
 			console.error('Error setting ENS text', error);
@@ -182,6 +191,7 @@ export const AuthButton = () => {
 				address: publicKey,
 			}),
 		});
+		console.log("finished registering");
 		setRegistered(true);
 	} catch (error) {
 		console.error("Error", error);
@@ -226,7 +236,11 @@ export const AuthButton = () => {
 	);
   }
 
-  return (
-	<ConnectButton />
-  );
+  if (!isInstalled) {
+	return (
+		<ConnectButton />
+	);
+  }
+
+  return <Spinner />;
 };

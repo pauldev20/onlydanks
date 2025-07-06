@@ -9,46 +9,67 @@ export default function Home() {
       <Page.Header className="p-0">
         <TopBar
           title="OnlyDanks"
-          className="text-black font-extrabold"
+          className="text-black font-medium bg-white/80 backdrop-blur-xl border-b border-black/5"
           startAdornment={
             <Image 
             src="/odlogo.png" 
             alt="OnlyDanks" 
             width={128}
             height={128}
-            className="w-12 h-12 rounded-full"
+            className="w-8 h-8 rounded-full"
             />
           }
         />
       </Page.Header>
-      <Page.Main className="flex flex-col items-center justify-start gap-4 mb-16">
+      <Page.Main className="flex flex-col items-center justify-start gap-5 mb-16 px-4 py-12">
         {/* meme goes here */}
-        <Image
-          src="/chat-meme.png" // <-- drop a dank meme here
-          alt="Encrypted chat meme"
-          width={400}
-          height={300}
-          className="rounded-xl shadow-md"
-        />
+        <div className="relative">
+          <Image
+            src="/chat-meme.png" // <-- drop a dank meme here
+            alt="Encrypted chat meme"
+            width={400}
+            height={300}
+            className="rounded-2xl"
+          />
+          <div className="absolute rounded-xl -z-10"></div>
+        </div>
 
         {/* one-liner tagline */}
-        <h2 className="text-xl font-bold text-center text-black">
-          the most private chat experience the world has to offer
-        </h2>
+        <div className="text-center max-w-4xl">
+          <h1 className="text-4xl md:text-5xl font-light text-black leading-tight tracking-tight">
+            the most private chat experience 
+            <span className="block font-medium">the world has to offer</span>
+          </h1>
+        </div>
 
         {/* high-level project desc */}
-        <div className="bg-gray-100 p-4 rounded-lg max-w-xl text-sm leading-relaxed text-gray-800">
-          <p>
-            <span className="font-semibold">blobber backend</span> — receives encrypted messages, buys blob space, and publishes them to Ethereum. ensures sender privacy.
-          </p>
-          <p className="mt-2">
-            messages are written to chain with a <code className="bg-white px-1 py-0.5 rounded text-xs">0xXX</code> prefix. anyone can browse the blobspace and fetch the encrypted content, but only the intended receiver can decrypt.
-          </p>
-          <p className="mt-2">
-            even the act of *reading* remains private — the receiver blends in with everyone else passively scanning blobs.
-          </p>
+        <div className="max-w-3xl">
+          <div className="grid gap-8 md:gap-12">
+            <div className="space-y-6 text-gray-600 text-base leading-relaxed">
+              <div className="flex gap-4">
+                <div className="w-1.5 h-1.5 bg-black rounded-full mt-2.5 flex-shrink-0"></div>
+                <p>
+                  <span className="text-black font-medium">blobber backend</span> receives encrypted messages, buys blob space, and publishes them to Ethereum. ensures sender privacy.
+                </p>
+              </div>
+              <div className="flex gap-4">
+                <div className="w-1.5 h-1.5 bg-black rounded-full mt-2.5 flex-shrink-0"></div>
+                <p>
+                  messages are written to chain with a <code className="bg-black/5 text-black px-2 py-1 rounded-md text-sm font-mono">0xXX</code> prefix. anyone can browse the blobspace and fetch the encrypted content, but only the intended receiver can decrypt.
+                </p>
+              </div>
+              <div className="flex gap-4">
+                <div className="w-1.5 h-1.5 bg-black rounded-full mt-2.5 flex-shrink-0"></div>
+                <p>
+                  even the act of <em className="text-black font-medium not-italic">reading</em> remains private — the receiver blends in with everyone else passively scanning blobs.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-        <AuthButton />
+        <div className="mt-2">
+          <AuthButton />
+        </div>
       </Page.Main>
     </Page>
   );

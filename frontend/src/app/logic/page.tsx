@@ -1,7 +1,7 @@
 'use client';
 
 import { createPublicClient, http } from 'viem';
-import { sepolia, worldchain, worldchainSepolia } from 'viem/chains';
+import { mainnet, worldchain } from 'viem/chains';
 import { normalize, namehash } from 'viem/ens';
 import { useState, useEffect } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
@@ -79,8 +79,8 @@ export default function LogicPage() {
 	const { data: walletClient } = useWalletClient();
 
 	const client = createPublicClient({
-		chain: sepolia,
-		transport: http('https://ethereum-sepolia-rpc.publicnode.com'),
+		chain: mainnet,
+		transport: http('https://rpc.mevblocker.io'),
 	});
 
 	useEffect(() => {
@@ -275,7 +275,8 @@ export default function LogicPage() {
 			address: process.env.NEXT_PUBLIC_REGISTRY as `0x${string}`,
 			abi: ensRegistryAbi,
 			functionName: 'setText',
-			chain: worldchainSepolia,
+			// chain: worldchainSepolia,
+			chain: worldchain,
 			args: [namehash(normalize("lol123.onlydanks.eth")), "com.dankchat.publicKey", "0xaa9e420a573725371eceaee00b2273dd452dd6277df644716a61c6ab31df45628716af5dbd0149b3832b0b2002580437071801b327a4dc4171aaeee6b49faec7"],
 		});
 	}

@@ -9,11 +9,12 @@ import { ec as EC } from 'elliptic';
 import { config } from '@/wagmi/config';
 import { getEnsText } from '@wagmi/core';
 import BN from 'bn.js';
-import { sepolia } from 'viem/chains';
 import { usePathname } from 'next/navigation';
+import { useMiniKit } from '@worldcoin/minikit-js/minikit-provider';
 
 import { decrypt, deriveAesKey, encrypt, verifySignature, recoverPublicKey } from '@/helpers/crypto';
 import { normalize } from 'path';
+import { mainnet, worldchain } from 'viem/chains';
 
 
 interface Message {
@@ -107,6 +108,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [demoInjected, setDemoInjected] = useState(false);
   const [registered, setRegistered] = useState(false);
+  const { isInstalled } = useMiniKit();
   const pathname = usePathname();
  
   /* --------------------------------- Wallet --------------------------------- */
@@ -157,7 +159,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       ]);
       setDemoInjected(true);
     }
-		if (!isConnected || !walletClient || !registered) return;
+		if ((!isConnected || !walletClient || !registered) && !isInstalled) return;
 		console.log("Wallet connected, fetching contacts...");
 		fetchContacts();
 		
@@ -337,7 +339,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 		address = await getEnsText(config, {
 			key: "com.dankchat.publicKey",
 			name: normalize(normalized),
-			chainId: sepolia.id
+			chainId: mainnet.id,
 		}) as string;
 		console.log("address", address);
 		if (!address) return null;
@@ -368,7 +370,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 
   const sendMessage = async (message: string, recipient: string) => {
 	console.log("recipient", recipient, isConnected, walletClient, registered);
-    if (!isConnected || !walletClient || !registered) return;
+    if ((!isConnected || !walletClient || !registered) && !isInstalled) return;
 
 	/* ----------------------------- Read MyKeyPair ----------------------------- */
 	const privateKey = localStorage.getItem('com.dankchat.privateKey');
@@ -386,7 +388,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 	if (!recipient.startsWith('0x') && !recipient.startsWith('04')) {
 		const resolvedAddress = await getEnsText(config, {
 			key: "com.dankchat.publicKey",
-			chainId: sepolia.id,
+			chainId: mainnet.id,
 			name: recipient,
 		}) as string;
 		console.log("resolvedAddress", resolvedAddress);

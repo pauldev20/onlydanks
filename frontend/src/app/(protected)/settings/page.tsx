@@ -2,7 +2,6 @@
 
 import { Button } from "@worldcoin/mini-apps-ui-kit-react";
 import { MiniKit } from "@worldcoin/minikit-js";
-import { worldchainSepolia } from "viem/chains";
 import { normalize, namehash } from "viem/ens";
 import { disconnect } from "@wagmi/core";
 import { signOut } from "next-auth/react";
@@ -11,6 +10,7 @@ import { useWalletClient } from "wagmi";
 import ensRegistryAbi from "@/abi/ENSRegistry.json";
 import { config } from "@/wagmi/config";
 import toast from "react-hot-toast";
+import { worldchain } from "viem/chains";
 
 export default function Settings() {
 	const { isInstalled } = useMiniKit();
@@ -23,14 +23,14 @@ export default function Settings() {
 			if (!ensName) return;
 
 			if (walletClient) {
-				await walletClient.switchChain(worldchainSepolia);
+				await walletClient.switchChain(worldchain);
 			}
 			if (walletClient) {
 				await walletClient.writeContract({
 					address: process.env.NEXT_PUBLIC_REGISTRY as `0x${string}`,
 					abi: ensRegistryAbi,
 					functionName: 'setText',
-					chain: worldchainSepolia,
+					chain: worldchain,
 					args: [namehash(normalize(ensName)), "com.dankchat.publicKey", ""],
 				});
 			} else {
