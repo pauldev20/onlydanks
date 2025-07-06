@@ -49,13 +49,13 @@ export default function Home() {
               <div className="flex gap-4">
                 <div className="w-1.5 h-1.5 bg-black rounded-full mt-2.5 flex-shrink-0"></div>
                 <p>
-                  <span className="text-black font-medium">blobber backend</span> receives encrypted messages, buys blob space, and publishes them to Ethereum. ensures sender privacy.
+                  <span className="text-black font-medium">backend</span> receives encrypted messages, buys blob space, and publishes them to Ethereum. ensures sender privacy.
                 </p>
               </div>
               <div className="flex gap-4">
                 <div className="w-1.5 h-1.5 bg-black rounded-full mt-2.5 flex-shrink-0"></div>
                 <p>
-                  messages are written to chain with a <code className="bg-black/5 text-black px-2 py-1 rounded-md text-sm font-mono">0xXX</code> prefix. anyone can browse the blobspace and fetch the encrypted content, but only the intended receiver can decrypt.
+                  messages are written to the blockchain. anyone can browse the blobspace and fetch the encrypted content, but only the intended receiver can decrypt.
                 </p>
               </div>
               <div className="flex gap-4">
