@@ -18,6 +18,7 @@ import { config } from '@/wagmi/config';
 import { normalize, namehash } from 'viem/ens';
 import { waitForTransactionReceipt } from '@wagmi/core'
 import { MiniKit } from '@worldcoin/minikit-js';
+import toast from 'react-hot-toast';
 
 
 const ec = new EC('secp256k1');
@@ -98,62 +99,77 @@ export const AuthButton = () => {
 			return;
 		}
 		if (walletClient) {
-			await switchChain(walletClient, {id: worldchainSepolia.id});
+			try {
+				await switchChain(walletClient, {id: worldchainSepolia.id});
+			} catch (error) {
+				toast.error('Error switching chain');
+				throw error;
+			}
 		}
 		if (domainOwner === "0x0000000000000000000000000000000000000000") {
-			if (walletClient) {
-				const tx = await walletClient.writeContract({
-					address: process.env.NEXT_PUBLIC_REGISTRAR as `0x${string}`,
-					abi: ensRegistrarAbi,
-					functionName: 'register',
-					chain: worldchainSepolia,
-					args: [ensName, walletClient.account.address],
-				});
-				await waitForTransactionReceipt(config, {hash: tx});
-			} else {
-				const response = await MiniKit.commandsAsync.sendTransaction({
-					transaction: [
-						{
-							address: process.env.NEXT_PUBLIC_REGISTRAR!,
-							abi: ensRegistrarAbi,
-							functionName: 'register',
-							args: [ensName, walletAddress],
-						},
-					],
-				});
-				if (response.finalPayload.status !== 'success') {
-					console.error('Error registering ENS', response.finalPayload.error_code);
-					return;
+			try {
+				if (walletClient) {
+					const tx = await walletClient.writeContract({
+						address: process.env.NEXT_PUBLIC_REGISTRAR as `0x${string}`,
+						abi: ensRegistrarAbi,
+						functionName: 'register',
+						chain: worldchainSepolia,
+						args: [ensName, walletClient.account.address],
+					});
+					await waitForTransactionReceipt(config, {hash: tx});
+				} else {
+					const response = await MiniKit.commandsAsync.sendTransaction({
+						transaction: [
+							{
+								address: process.env.NEXT_PUBLIC_REGISTRAR!,
+								abi: ensRegistrarAbi,
+								functionName: 'register',
+								args: [ensName, walletAddress],
+							},
+						],
+					});
+					if (response.finalPayload.status !== 'success') {
+						console.error('Error registering ENS', response.finalPayload.error_code);
+						return;
+					}
 				}
+			} catch (error) {
+				toast.error('Error registering ENS');
+				throw error;
 			}
 		}
 		const keyPair = ec.genKeyPair();
 		localStorage.setItem('com.dankchat.privateKey', keyPair.getPrivate().toString('hex'));
 		const publicKey = `${keyPair.getPublic().getX().toString("hex")}${keyPair.getPublic().getY().toString("hex")}`;
-		if (walletClient) {
-			const tx2 = await walletClient.writeContract({
-				address: process.env.NEXT_PUBLIC_REGISTRY as `0x${string}`,
-				abi: ensRegistryAbi,
-				functionName: 'setText',
-				chain: worldchainSepolia,
-				args: [namehash(normalize(ensName + ".onlydanks.eth")), "com.dankchat.publicKey", publicKey],
-			});
-			await waitForTransactionReceipt(config, {hash: tx2});
-		} else {
-			const response = await MiniKit.commandsAsync.sendTransaction({
-				transaction: [
-					{
-						address: process.env.NEXT_PUBLIC_REGISTRY!,
-						abi: ensRegistryAbi,
-						functionName: 'setText',
-						args: [namehash(normalize(ensName + ".onlydanks.eth")), "com.dankchat.publicKey", publicKey],
-					},
-				],
-			});
-			if (response.finalPayload.status !== 'success') {
-				console.error('Error setting ENS text', response.finalPayload.error_code);
-				return;
+		try {
+			if (walletClient) {
+				const tx2 = await walletClient.writeContract({
+					address: process.env.NEXT_PUBLIC_REGISTRY as `0x${string}`,
+					abi: ensRegistryAbi,
+					functionName: 'setText',
+					chain: worldchainSepolia,
+					args: [namehash(normalize(ensName + ".onlydanks.eth")), "com.dankchat.publicKey", publicKey],
+				});
+				await waitForTransactionReceipt(config, {hash: tx2});
+			} else {
+				const response = await MiniKit.commandsAsync.sendTransaction({
+					transaction: [
+						{
+							address: process.env.NEXT_PUBLIC_REGISTRY!,
+							abi: ensRegistryAbi,
+							functionName: 'setText',
+							args: [namehash(normalize(ensName + ".onlydanks.eth")), "com.dankchat.publicKey", publicKey],
+						},
+					],
+				});
+				if (response.finalPayload.status !== 'success') {
+					console.error('Error setting ENS text', response.finalPayload.error_code);
+					return;
+				}
 			}
+		} catch (error) {
+			console.error('Error setting ENS text', error);
+			throw error;
 		}
 		localStorage.setItem('com.dankchat.ensName', ensName + ".onlydanks.eth");
 		await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ens`, {
@@ -168,7 +184,7 @@ export const AuthButton = () => {
 		});
 		setRegistered(true);
 	} catch (error) {
-		console.error("Error registering ENS", error);
+		console.error("Error", error);
 	} finally {
 		setIsPending(false);
 	}

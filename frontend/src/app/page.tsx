@@ -14,8 +14,8 @@ export default function Home() {
             <Image 
             src="/odlogo.png" 
             alt="OnlyDanks" 
-            width={24} 
-            height={24}
+            width={128}
+            height={128}
             className="w-12 h-12 rounded-full"
             />
           }

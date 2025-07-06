@@ -9,6 +9,7 @@ import { config } from '@/wagmi/config';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { RainbowKitSiweNextAuthProvider } from '@rainbow-me/rainbowkit-siwe-next-auth';
+import { Toaster } from 'react-hot-toast';
 import dynamic from 'next/dynamic';
 
 
@@ -36,6 +37,10 @@ export default function ClientProviders({
 					<RainbowKitSiweNextAuthProvider>
 						<RainbowKitProvider>
 							<ErudaProvider>
+								<Toaster
+									position="top-center"
+									reverseOrder={false}
+								/>
 								{children}
 							</ErudaProvider>
 						</RainbowKitProvider>

@@ -1,7 +1,7 @@
 'use client';
 
 import { createPublicClient, http } from 'viem';
-import { sepolia, worldchainSepolia } from 'viem/chains';
+import { sepolia, worldchain, worldchainSepolia } from 'viem/chains';
 import { normalize, namehash } from 'viem/ens';
 import { useState, useEffect } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
@@ -260,11 +260,12 @@ export default function LogicPage() {
 		// const publicKey = keyPair.getPublic();
 		// const ethPubKey = `0x${publicKey.getY().toString("hex").slice(-40)}`;
 		await walletClient.writeContract({
-			address: "0x1468386e6ABb1874c0d9fD43899EbD21A12470A6" as `0x${string}`,
+			address: process.env.NEXT_PUBLIC_REGISTRAR as `0x${string}`,
 			abi: ensRegistrarAbi,
 			functionName: 'register',
-			chain: worldchainSepolia,
-			args: ["lol123", "0x522F3038F78d91dADA58F8A768be7611134767D5"],
+			// chain: worldchainSepolia,
+			chain: worldchain,
+			args: ["lol123", "0xEaD69Bd3507E99427C49621c767eEd385f8E2E9f"],
 		});
 	}
 
