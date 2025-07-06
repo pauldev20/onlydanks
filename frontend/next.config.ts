@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   },
   allowedDevOrigins: ['0893-83-144-23-157.ngrok-free.app'], // Add your dev origin here
   reactStrictMode: false,
+  output: 'standalone',
 };
 
 export default nextConfig;
