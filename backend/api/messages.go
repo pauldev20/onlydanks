@@ -50,6 +50,7 @@ func (a *API) PostMessage(c *fiber.Ctx) error {
 		Pubkey:  requestBytes.EphemeralPubKey,
 	})
 	if err != nil {
+		log.Error().Err(err).Msg("Failed to add blob submission")
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.SendStatus(fiber.StatusOK)
@@ -110,6 +111,7 @@ func (a *API) bypassBlob(ctx context.Context, msg PostMessageRequestBytes) error
 		SubmitTime: time.Now(),
 	})
 	if err != nil {
+		log.Error().Err(err).Msg("failed to add pubkey")
 		return errors.New("failed to add pubkey: " + err.Error())
 	}
 	_, err = a.queries.AddMessage(ctx, dbgen.AddMessageParams{
@@ -119,6 +121,7 @@ func (a *API) bypassBlob(ctx context.Context, msg PostMessageRequestBytes) error
 		NeedsSubmission: true,
 	})
 	if err != nil {
+		log.Error().Err(err).Msg("failed to add message")
 		return errors.New("failed to add message: " + err.Error())
 	}
 	return nil

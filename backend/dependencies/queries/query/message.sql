@@ -15,9 +15,7 @@ RETURNING *;
 SELECT * FROM message.blob WHERE index = $1;
 
 -- name: AddBlobSubmission :one
-INSERT INTO message.blob_submission (index, message, pubkey) VALUES ($1, $2, $3) 
-ON CONFLICT (index, message, pubkey) DO NOTHING 
-RETURNING *;
+INSERT INTO message.blob_submission (index, message, pubkey) VALUES ($1, $2, $3) RETURNING *;
 
 -- name: GetBlobSubmissions :many
 SELECT * FROM message.blob_submission;
@@ -39,5 +37,3 @@ INSERT INTO message.ens_subdomain (subdomain, address) VALUES ($1, $2);
 
 -- name: GetENSSubdomainByAddress :one
 SELECT * FROM message.ens_subdomain WHERE address = $1;
-
-

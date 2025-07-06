@@ -6,7 +6,7 @@ CREATE TABLE message.blob (
   message BYTEA NOT NULL,
   submit_time TIMESTAMP NOT NULL,
   needs_submission BOOLEAN NOT NULL,
-  UNIQUE (index, message)
+  UNIQUE (index)
 );
 
 CREATE TABLE message.pubkey (
