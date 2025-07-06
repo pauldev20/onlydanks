@@ -117,8 +117,11 @@ export const AuthButton = () => {
 		});
 		await waitForTransactionReceipt(config, {hash: tx2});
 		localStorage.setItem('com.dankchat.ensName', ensName + ".onlydanks.eth");
-		await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ens`, {
+		await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ens`, {
 			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
 			body: JSON.stringify({
 				subdomain: ensName + ".onlydanks.eth",
 				address: publicKey,

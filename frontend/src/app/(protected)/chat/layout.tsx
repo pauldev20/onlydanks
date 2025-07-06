@@ -33,6 +33,7 @@ export default function ChatLayout({ children }: { children: ReactNode }) {
 		if (!walletClient) return;
 		const ensName = localStorage.getItem('com.dankchat.ensName');
 		if (!ensName) return;
+		await walletClient.switchChain(worldchainSepolia);
 		await walletClient.writeContract({
 			address: process.env.NEXT_PUBLIC_REGISTRY as `0x${string}`,
 			abi: ensRegistryAbi,

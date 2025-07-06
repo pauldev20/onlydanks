@@ -10,7 +10,7 @@ import { config } from '@/wagmi/config';
 import { getEnsText } from '@wagmi/core';
 import BN from 'bn.js';
 import { sepolia } from 'viem/chains';
-import { useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 
 import { decrypt, deriveAesKey, encrypt, verifySignature, recoverPublicKey } from '@/helpers/crypto';
 import { normalize } from 'path';
@@ -104,20 +104,24 @@ const getSentMessages = async (): Promise<StoredMessage[]> => {
 
 export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [demoInjected, setDemoInjected] = useState(false);
   const [registered, setRegistered] = useState(false);
+  const pathname = usePathname();
  
   /* --------------------------------- Wallet --------------------------------- */
   const { data: walletClient } = useWalletClient();
   const { isConnected } = useAccount();
   const { status } = useSession();
-  const [demoInjected, setDemoInjected] = useState(false);
 
-  const router = useRouter();
 
 
   useEffect(() => {
+	if (isConnected && walletClient && pathname !== '/') {
+		setRegistered(true);
+	}
+
     const initalize = async () => {
-      if (!demoInjected) {
+      if (!demoInjected && localStorage.getItem("demo") === "true") {
         setContacts(prev => [
           ...prev,
           {
@@ -152,10 +156,6 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       ]);
       setDemoInjected(true);
     }
-		if (isConnected && walletClient && router.pathname !== '/') {
-			setRegistered(true);
-		}
-
 		if (!isConnected || !walletClient || !registered) return;
 		console.log("Wallet connected, fetching contacts...");
 		fetchContacts();
@@ -166,7 +166,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 		return () => clearInterval(interval);
     };
     initalize();
-  }, [walletClient, isConnected, status, registered, demoInjected]);
+  }, [walletClient, isConnected, status, registered, demoInjected, pathname]);
 
   const fetchContacts = async () => {
 	/* ----------------------------- Read MyKeyPair ----------------------------- */
@@ -231,7 +231,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 					continue;
 				}
 
-				const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ens/${recoveredPublicKey}`, {
+				const ensPublicKey = recoveredPublicKey.startsWith("04") || recoveredPublicKey.startsWith("0x") ? recoveredPublicKey.slice(2) : recoveredPublicKey;
+				const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ens/${ensPublicKey}`, {
 					method: 'GET',
 					headers: {
 						'Content-Type': 'application/json',
@@ -343,6 +344,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 		address = textInput;
 	}
 	address = address.startsWith('0x') ? `04${address.slice(2)}` : address;
+	address = !address.startsWith('04') ? `04${address}` : address;
 
 	const existing = contacts.find(c => c.address.toLowerCase() === address.toLowerCase());
 	if (existing) return existing.id;
