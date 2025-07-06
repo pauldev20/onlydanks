@@ -58,7 +58,7 @@ func (q *Queries) AddENSSubdomain(ctx context.Context, arg AddENSSubdomainParams
 
 const addMessage = `-- name: AddMessage :one
 INSERT INTO message.blob (index, message, submit_time, needs_submission) VALUES ($1, $2, $3, $4) 
-ON CONFLICT (index, message) DO UPDATE SET submit_time = EXCLUDED.submit_time, needs_submission = EXCLUDED.needs_submission 
+ON CONFLICT (index) DO UPDATE SET submit_time = EXCLUDED.submit_time, needs_submission = EXCLUDED.needs_submission 
 RETURNING id, index, message, submit_time, needs_submission
 `
 
@@ -72,7 +72,7 @@ type AddMessageParams struct {
 // AddMessage
 //
 //	INSERT INTO message.blob (index, message, submit_time, needs_submission) VALUES ($1, $2, $3, $4)
-//	ON CONFLICT (index, message) DO UPDATE SET submit_time = EXCLUDED.submit_time, needs_submission = EXCLUDED.needs_submission
+//	ON CONFLICT (index) DO UPDATE SET submit_time = EXCLUDED.submit_time, needs_submission = EXCLUDED.needs_submission
 //	RETURNING id, index, message, submit_time, needs_submission
 func (q *Queries) AddMessage(ctx context.Context, arg AddMessageParams) (MessageBlob, error) {
 	row := q.db.QueryRow(ctx, addMessage,

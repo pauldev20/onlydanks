@@ -19,7 +19,7 @@ CREATE TABLE message.blob_submission (
   index BYTEA NOT NULL,
   message BYTEA NOT NULL,
   pubkey BYTEA NOT NULL,
-  UNIQUE (index, message, pubkey)
+  UNIQUE (index, pubkey)
 );
 
 CREATE TABLE message.blob_update (

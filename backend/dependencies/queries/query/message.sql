@@ -8,7 +8,7 @@ SELECT * FROM message.pubkey WHERE submit_time > $1 LIMIT 1000;
 
 -- name: AddMessage :one
 INSERT INTO message.blob (index, message, submit_time, needs_submission) VALUES ($1, $2, $3, $4) 
-ON CONFLICT (index, message) DO UPDATE SET submit_time = EXCLUDED.submit_time, needs_submission = EXCLUDED.needs_submission 
+ON CONFLICT (index) DO UPDATE SET submit_time = EXCLUDED.submit_time, needs_submission = EXCLUDED.needs_submission 
 RETURNING *;
 
 -- name: GetMessagesByIndex :many
