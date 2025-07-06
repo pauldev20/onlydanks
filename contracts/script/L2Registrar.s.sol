@@ -12,7 +12,7 @@ contract Deploy is Script {
     function run() public {
         vm.startBroadcast();
 
-        l2Registrar = new L2Registrar(0x41Fb196Ae7D65E06880A240c8d1B91245Fb84807);
+        l2Registrar = new L2Registrar(0xc3a4eB979e9035486b54Fe8b57D36aEF9519eAc6);
 
         vm.stopBroadcast();
     }
