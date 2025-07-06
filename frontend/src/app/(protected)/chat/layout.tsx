@@ -42,7 +42,8 @@ export default function ChatLayout({ children }: { children: ReactNode }) {
           }
           endAdornment={
             <div className="flex items-center gap-2">
-              <ConnectButton />
+              <ConnectButton 
+              chainStatus="none"/>
             </div>
           }
         />
