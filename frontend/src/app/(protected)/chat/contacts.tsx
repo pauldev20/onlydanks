@@ -6,8 +6,45 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ListItem } from '@worldcoin/mini-apps-ui-kit-react';
 import { formatTime } from '@/helpers/time';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
+
+function ENSName() {
+	const [ensName, setEnsName] = useState('Loading...');
+	const [copied, setCopied] = useState(false);
+
+	useEffect(() => {
+		const ensName = localStorage.getItem('com.dankchat.ensName');
+		if (ensName) setEnsName(ensName);
+	}, []);
+
+	const copyToClipboard = async () => {
+		if (ensName && ensName !== 'Loading...') {
+			try {
+				await navigator.clipboard.writeText(ensName);
+				setCopied(true);
+				setTimeout(() => setCopied(false), 2000);
+			} catch (err) {
+				console.error('Failed to copy: ', err);
+			}
+		}
+	};
+
+	return (
+		<div className="flex items-center gap-2">
+			<p>Your ENS name: <span className="font-bold">{ensName}</span></p>
+			{ensName && ensName !== 'Loading...' && (
+				<button
+					onClick={copyToClipboard}
+					className="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded transition-colors"
+					title="Copy ENS name"
+				>
+					{copied ? '✅' : '📋'}
+				</button>
+			)}
+		</div>
+	)
+}
 
 export default function ContactsPage() {
   const { contacts, startNewChat } = useChat(); // assume you have a function to init new chat
@@ -41,6 +78,7 @@ export default function ContactsPage() {
     <div className="h-screen overflow-y-auto ">
       
         <div className="flex flex-col p-4 space-y-2">
+			<ENSName />
       <input
         type="text"
         placeholder="Start new chat..."

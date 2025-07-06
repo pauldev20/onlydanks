@@ -4,17 +4,24 @@
 import { ReactNode, useEffect } from 'react';
 import ContactsPage from './contacts'; // import directly
 import { Page } from '@/components/PageLayout';
-import { TopBar } from '@worldcoin/mini-apps-ui-kit-react';
+import { Button, TopBar } from '@worldcoin/mini-apps-ui-kit-react';
 import Image from 'next/image';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { usePathname, useRouter } from 'next/navigation';
-import { useAccount } from 'wagmi';
+import { useRouter } from 'next/navigation';
+import { signOut } from 'next-auth/react';
+import { useAccount, useWalletClient } from 'wagmi';
+import { disconnect } from '@wagmi/core'
+import { config } from '@/wagmi/config';
+import { worldchainSepolia } from 'viem/chains';
+import ensRegistryAbi from "@/abi/ENSRegistry.json";
+import { namehash, normalize } from 'viem/ens';
+import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
 
 export default function ChatLayout({ children }: { children: ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
     const { isDisconnected } = useAccount();
+	const { data: walletClient } = useWalletClient();
 
     useEffect(() => {
     if (isDisconnected) {
@@ -22,6 +29,34 @@ export default function ChatLayout({ children }: { children: ReactNode }) {
     }
     }, [isDisconnected, router]);
 
+	const handleDeleteAccount = async () => {
+		if (!walletClient) return;
+		const ensName = localStorage.getItem('com.dankchat.ensName');
+		if (!ensName) return;
+		await walletClient.writeContract({
+			address: process.env.NEXT_PUBLIC_REGISTRY as `0x${string}`,
+			abi: ensRegistryAbi,
+			functionName: 'setText',
+			chain: worldchainSepolia,
+			args: [namehash(normalize(ensName)), "com.dankchat.publicKey", ""],
+		});
+
+		localStorage.removeItem('com.dankchat.privateKey');
+
+		const request = indexedDB.deleteDatabase('dankchat');
+		request.onsuccess = () => {
+			console.log('IndexedDB cleared successfully');
+		};
+		request.onerror = () => {
+			console.error('Error clearing IndexedDB:', request.error);
+		};
+
+		await disconnect(config);
+
+		signOut({
+			redirectTo: '/',
+		});
+	}
     const isChatPage = pathname?.match(/^\/chat\/\d+$/); // matches /chat/0, /chat/1 etc
 
 
@@ -42,8 +77,7 @@ export default function ChatLayout({ children }: { children: ReactNode }) {
           }
           endAdornment={
             <div className="flex items-center gap-2">
-              <ConnectButton 
-              chainStatus="none"/>
+              <Button onClick={handleDeleteAccount} size='sm' color='danger'>Delete Account</Button>
             </div>
           }
         />
