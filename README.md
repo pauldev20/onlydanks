@@ -1,5 +1,23 @@
-# OnlyDanks
+<div align="center">
+	<img src="https://em-content.zobj.net/source/apple/391/bar-chart_1f4ca.png" align="center" width=180 heihgt=180/>
+  <h1>OnlyDanks</h1>
+	<p align="center">
+    <a href="https://ethglobal.com/showcase/onlydanks-wi77b">ETHGlobal Showcase</a>
+		<br/>
+		<a href="#about">About This Project</a>
+		·
+		<a href="#how-it-works-conceptually">How It Works</a>
+  	</p>
+	<br/>
+</div>
 
+<div align="center">
+  <img width="386" height="350" alt="prizes" src="https://github.com/user-attachments/assets/60f71bb3-aa7e-41c2-aa0c-f27198134ab0" />
+</div>
+
+<br/>
+
+# About
 Private end-to-end encrypted messenger built on blobs, fully anonymous and censorship-resistant.
 
 ## Description
